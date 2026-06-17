@@ -1,0 +1,10 @@
+# Java/Eclipse
+/build/
+.settings/
+.classpath
+.project
+
+# OS-specific files
+Thumbs.db
+Desktop.ini
+.DS_Store
