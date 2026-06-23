@@ -22,8 +22,8 @@ public class HomeController {
         String nhomQuyen = (String) session.getAttribute("nhomQuyen");
         if ("PGV".equals(nhomQuyen)) {
             try {
-                List<Map<String, Object>> khoaList = connHelper.getJdbcTemplate(session)
-                        .queryForList("SELECT MAKHOA, TENKHOA FROM KHOA ORDER BY MAKHOA");
+                List<Map<String, Object>> khoaList = StoredProcedure.query(
+                        connHelper.getJdbcTemplate(session), "SP_DanhSachKhoa");
                 session.setAttribute("khoaList", khoaList);
             } catch (Exception e) {
                 // ignore
@@ -34,8 +34,8 @@ public class HomeController {
         String maKhoa = (String) session.getAttribute("maKhoa");
         if (maKhoa != null) {
             try {
-                String tenKhoa = connHelper.getJdbcTemplate(session).queryForObject(
-                        "SELECT TENKHOA FROM KHOA WHERE MAKHOA = ?", String.class, maKhoa.trim());
+                String tenKhoa = StoredProcedure.object(connHelper.getJdbcTemplate(session),
+                        "SP_LayTenKhoa", String.class, maKhoa.trim());
                 model.addAttribute("tenKhoa", tenKhoa);
             } catch (Exception e) {
                 model.addAttribute("tenKhoa", maKhoa);

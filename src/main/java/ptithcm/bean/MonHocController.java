@@ -24,8 +24,7 @@ public class MonHocController {
             return "redirect:/home";
         }
         JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
-        List<Map<String, Object>> dsmh = jdbc.queryForList(
-                "SELECT * FROM MONHOC ORDER BY TENMH");
+        List<Map<String, Object>> dsmh = StoredProcedure.query(jdbc, "SP_DanhSachMonHoc");
         model.addAttribute("dsmh", dsmh);
         return "monhoc";
     }
@@ -43,11 +42,11 @@ public class MonHocController {
         JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
         try {
             if ("add".equals(action)) {
-                jdbc.update("INSERT INTO MONHOC (MAMH, TENMH, SOTIET_LT, SOTIET_TH) VALUES (?,?,?,?)",
+                StoredProcedure.update(jdbc, "SP_ThemMonHoc",
                         mamh.trim(), tenmh.trim(), sotietLT, sotietTH);
                 ra.addFlashAttribute("success", "Thêm môn học thành công!");
             } else {
-                jdbc.update("UPDATE MONHOC SET TENMH=?, SOTIET_LT=?, SOTIET_TH=? WHERE MAMH=?",
+                StoredProcedure.update(jdbc, "SP_CapNhatMonHoc",
                         tenmh.trim(), sotietLT, sotietTH, mamh.trim());
                 ra.addFlashAttribute("success", "Cập nhật môn học thành công!");
             }
@@ -64,8 +63,8 @@ public class MonHocController {
             return "redirect:/home";
         }
         try {
-            connHelper.getJdbcTemplate(session)
-                    .update("DELETE FROM MONHOC WHERE MAMH=?", mamh.trim());
+            StoredProcedure.update(connHelper.getJdbcTemplate(session),
+                    "SP_XoaMonHoc", mamh.trim());
             ra.addFlashAttribute("success", "Xóa môn học thành công!");
         } catch (Exception e) {
             ra.addFlashAttribute("error", "Không thể xóa: " + e.getMessage());

@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
- * Quản trị tài khoản - PGV only
+ * Quản trị tài khoản.
  */
 @Controller
 @RequestMapping("/taikhoan")
@@ -28,13 +28,11 @@ public class TaiKhoanController {
         }
         JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
 
-        List<Map<String, Object>> dsgv = jdbc.queryForList(
-                "SELECT G.MAGV, G.HO + ' ' + G.TEN AS HOTEN, T.Login, T.MatKhau, T.NhomQuyen, T.MAKHOA " +
-                "FROM GIANGVIEN G LEFT JOIN TaiKhoan T ON G.MAGV = T.MAGV " +
-                "ORDER BY G.TEN, G.HO");
+        List<Map<String, Object>> dsgv = StoredProcedure.query(jdbc,
+                "SP_DanhSachTaiKhoanGiangVien");
         model.addAttribute("dsgv", dsgv);
-        
-        List<Map<String, Object>> khoaList = jdbc.queryForList("SELECT MAKHOA, TENKHOA FROM KHOA ORDER BY MAKHOA");
+
+        List<Map<String, Object>> khoaList = StoredProcedure.query(jdbc, "SP_DanhSachKhoa");
         model.addAttribute("khoaList", khoaList);
         return "taikhoan";
     }
@@ -55,19 +53,12 @@ public class TaiKhoanController {
             return "redirect:/taikhoan";
         }
         JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
-        String mkhoa = "PGV".equals(nhomQuyen.trim()) ? null : (maKhoa != null && !maKhoa.trim().isEmpty() ? maKhoa.trim() : null);
+        String mkhoa = "PGV".equals(nhomQuyen.trim()) ? null
+                : (maKhoa != null && !maKhoa.trim().isEmpty() ? maKhoa.trim() : null);
         try {
-            Long count = jdbc.queryForObject("SELECT COUNT(*) FROM TaiKhoan WHERE MAGV=?", Long.class, magv.trim());
-            if (count == 0) {
-                jdbc.update("INSERT INTO TaiKhoan (Login, MatKhau, NhomQuyen, MAGV, MAKHOA, TrangThai, NgayTao) " +
-                            "VALUES (?,?,?,?,?, 'Active',GETDATE())",
-                        login.trim(), matkhau, nhomQuyen.trim(), magv.trim(), mkhoa);
-                ra.addFlashAttribute("success", "Tạo tài khoản thành công!");
-            } else {
-                jdbc.update("UPDATE TaiKhoan SET Login=?, MatKhau=?, NhomQuyen=?, MAKHOA=? WHERE MAGV=?",
-                        login.trim(), matkhau, nhomQuyen.trim(), mkhoa, magv.trim());
-                ra.addFlashAttribute("success", "Cập nhật tài khoản thay đổi thành công!");
-            }
+            StoredProcedure.update(jdbc, "SP_LuuTaiKhoanGiangVien",
+                    magv.trim(), login.trim(), matkhau, nhomQuyen.trim(), mkhoa);
+            ra.addFlashAttribute("success", "Lưu tài khoản thành công!");
         } catch (Exception e) {
             ra.addFlashAttribute("error", "Lỗi: " + e.getMessage());
         }
@@ -84,15 +75,18 @@ public class TaiKhoanController {
         JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
         if ("KHOA".equals(sessionQuyen)) {
             try {
-                String role = jdbc.queryForObject("SELECT NhomQuyen FROM TaiKhoan WHERE MAGV=?", String.class, magv.trim());
+                String role = StoredProcedure.object(jdbc, "SP_LayNhomQuyenTheoGiangVien",
+                        String.class, magv.trim());
                 if ("PGV".equals(role)) {
                     ra.addFlashAttribute("error", "Khoa không có quyền xóa tài khoản nhóm PGV!");
                     return "redirect:/taikhoan";
                 }
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                // No account found, continue to delete safely.
+            }
         }
         try {
-            jdbc.update("DELETE FROM TaiKhoan WHERE MAGV=?", magv.trim());
+            StoredProcedure.update(jdbc, "SP_XoaTaiKhoanTheoGiangVien", magv.trim());
             ra.addFlashAttribute("success", "Xóa tài khoản thành công!");
         } catch (Exception e) {
             ra.addFlashAttribute("error", "Không thể xóa: " + e.getMessage());

@@ -41,11 +41,11 @@ public class LopController {
         JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
         try {
             if ("add".equals(action)) {
-                jdbc.update("INSERT INTO LOP (MALOP, TENLOP, KHOAHOC, MAKHOA) VALUES (?, ?, ?, ?)",
+                StoredProcedure.update(jdbc, "SP_ThemLop",
                         maLop.trim(), tenLop.trim(), khoaHoc.trim(), maKhoa.trim());
                 ra.addFlashAttribute("success", "Thêm lớp thành công!");
             } else {
-                jdbc.update("UPDATE LOP SET TENLOP=?, KHOAHOC=?, MAKHOA=? WHERE MALOP=?",
+                StoredProcedure.update(jdbc, "SP_CapNhatLop",
                         tenLop.trim(), khoaHoc.trim(), maKhoa.trim(), maLop.trim());
                 ra.addFlashAttribute("success", "Cập nhật lớp thành công!");
             }
@@ -62,8 +62,8 @@ public class LopController {
             return "redirect:/home";
         }
         try {
-            connHelper.getJdbcTemplate(session)
-                    .update("DELETE FROM LOP WHERE MALOP=?", maLop.trim());
+            StoredProcedure.update(connHelper.getJdbcTemplate(session),
+                    "SP_XoaLop", maLop.trim());
             ra.addFlashAttribute("success", "Xóa lớp thành công!");
         } catch (Exception e) {
             ra.addFlashAttribute("error", "Không thể xóa: " + e.getMessage());
@@ -76,17 +76,13 @@ public class LopController {
         String nhomQuyen = (String) session.getAttribute("nhomQuyen");
         List<Map<String, Object>> dslop;
         if ("PGV".equals(nhomQuyen)) {
-            dslop = jdbc.queryForList(
-                "SELECT L.*, K.TENKHOA FROM LOP L JOIN KHOA K ON L.MAKHOA=K.MAKHOA ORDER BY L.MALOP");
+            dslop = StoredProcedure.query(jdbc, "SP_DanhSachLop", (Object) null);
         } else {
             String maKhoa = (String) session.getAttribute("maKhoa");
-            dslop = jdbc.queryForList(
-                "SELECT L.*, K.TENKHOA FROM LOP L JOIN KHOA K ON L.MAKHOA=K.MAKHOA " +
-                "WHERE L.MAKHOA=? ORDER BY L.MALOP", maKhoa);
+            dslop = StoredProcedure.query(jdbc, "SP_DanhSachLop", maKhoa);
         }
         model.addAttribute("dslop", dslop);
-        List<Map<String, Object>> khoaList = jdbc.queryForList(
-                "SELECT MAKHOA, TENKHOA FROM KHOA ORDER BY MAKHOA");
+        List<Map<String, Object>> khoaList = StoredProcedure.query(jdbc, "SP_DanhSachKhoa");
         model.addAttribute("khoaList", khoaList);
     }
 }

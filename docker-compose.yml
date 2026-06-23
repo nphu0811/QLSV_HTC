@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   # ============================================
-  # Tomcat 9 Web App
+  # Tomcat 8.5 Web App
   # Kết nối tới SQL Server chạy trên máy Windows (Local)
   # ============================================
   webapp:
@@ -11,7 +9,7 @@ services:
       dockerfile: Dockerfile
     container_name: qldsv-webapp
     ports:
-      - "9090:8080"
+      - "8080:8080"
     environment:
       # host.docker.internal trỏ về máy Windows của bạn
       - DB_HOST=host.docker.internal

@@ -29,17 +29,17 @@ public class SinhVienController {
         
         // Danh sách lớp
         if ("PGV".equals(nhomQuyen)) {
-             dslop = jdbc.queryForList("SELECT MALOP, TENLOP FROM LOP ORDER BY MALOP");
+             dslop = StoredProcedure.query(jdbc, "SP_DanhSachLopDropdown", (Object) null);
         } else {
              String maKhoa = (String) session.getAttribute("maKhoa");
-             dslop = jdbc.queryForList("SELECT MALOP, TENLOP FROM LOP WHERE MAKHOA=? ORDER BY MALOP", maKhoa);
+             dslop = StoredProcedure.query(jdbc, "SP_DanhSachLopDropdown", maKhoa);
         }
         model.addAttribute("dslop", dslop);
 
         // Nếu chọn lớp -> load danh sách SV
         if (malop != null && !malop.isEmpty()) {
-            List<Map<String, Object>> dssv = jdbc.queryForList(
-                    "SELECT * FROM SINHVIEN WHERE MALOP=? ORDER BY TEN, HO", malop.trim());
+            List<Map<String, Object>> dssv = StoredProcedure.query(jdbc,
+                    "SP_DanhSachSinhVienTheoLop", malop.trim());
             model.addAttribute("dssv", dssv);
             model.addAttribute("selectedLop", malop.trim());
         }
@@ -64,8 +64,7 @@ public class SinhVienController {
         String password = masv.trim();
         try {
             if ("add".equals(action)) {
-                jdbc.update("INSERT INTO SINHVIEN (MASV,HO,TEN,MALOP,PHAI,NGAYSINH,DIACHI,DANGHIHOC,PASSWORD) " +
-                            "VALUES (?,?,?,?,?,?,?,?,?)",
+                StoredProcedure.update(jdbc, "SP_ThemSinhVien",
                         masv.trim(), ho.trim(), ten.trim(), malop.trim(),
                         phai ? 1 : 0,
                         (ngaysinh != null && !ngaysinh.isEmpty()) ? ngaysinh : null,
@@ -73,8 +72,7 @@ public class SinhVienController {
                         danghihoc ? 1 : 0, password);
                 ra.addFlashAttribute("success", "Thêm sinh viên thành công!");
             } else {
-                jdbc.update("UPDATE SINHVIEN SET HO=?,TEN=?,MALOP=?,PHAI=?,NGAYSINH=?," +
-                            "DIACHI=?,DANGHIHOC=?,PASSWORD=? WHERE MASV=?",
+                StoredProcedure.update(jdbc, "SP_CapNhatSinhVien",
                         ho.trim(), ten.trim(), malop.trim(),
                         phai ? 1 : 0,
                         (ngaysinh != null && !ngaysinh.isEmpty()) ? ngaysinh : null,
@@ -96,8 +94,8 @@ public class SinhVienController {
             return "redirect:/home";
         }
         try {
-            connHelper.getJdbcTemplate(session)
-                    .update("DELETE FROM SINHVIEN WHERE MASV=?", masv.trim());
+            StoredProcedure.update(connHelper.getJdbcTemplate(session),
+                    "SP_XoaSinhVien", masv.trim());
             ra.addFlashAttribute("success", "Xóa sinh viên thành công!");
         } catch (Exception e) {
             ra.addFlashAttribute("error", "Không thể xóa: " + e.getMessage());

@@ -30,10 +30,8 @@ public class LoginController {
         try {
             if ("SV".equals(loginType)) {
                 // === SINH VIÊN: kiểm tra bảng SINHVIEN ===
-                String sql = "SELECT MASV, HO, TEN, MALOP FROM SINHVIEN " +
-                             "WHERE MASV = ? AND DANGHIHOC = 0";
-                List<Map<String, Object>> rows = jdbc.queryForList(sql,
-                        username.trim());
+                List<Map<String, Object>> rows = StoredProcedure.query(jdbc,
+                        "SP_LoginSinhVien", username.trim());
                 if (rows.isEmpty()) {
                     model.addAttribute("error", "Mã sinh viên hoặc mật khẩu không đúng!");
                     return "login";
@@ -45,9 +43,8 @@ public class LoginController {
                 String malop = sv.get("MALOP").toString().trim();
 
                 // Lấy mã khoa từ lớp
-                String maKhoa = jdbc.queryForObject(
-                        "SELECT MAKHOA FROM LOP WHERE MALOP = ?",
-                        String.class, malop).trim();
+                String maKhoa = StoredProcedure.object(jdbc,
+                        "SP_LayKhoaTheoLop", String.class, malop).trim();
 
                 session.setAttribute("nhomQuyen", "SV");
                 session.setAttribute("masv", masv);
@@ -61,10 +58,8 @@ public class LoginController {
 
             } else {
                 // === GIẢNG VIÊN / PGV / KHOA: kiểm tra bảng TaiKhoan ===
-                String sql = "SELECT * FROM TaiKhoan WHERE Login = ? AND MatKhau = ? " +
-                             "AND TrangThai = 'Active'";
-                List<Map<String, Object>> rows = jdbc.queryForList(sql,
-                        username.trim(), password);
+                List<Map<String, Object>> rows = StoredProcedure.query(jdbc,
+                        "SP_LoginTaiKhoan", username.trim(), password);
                 if (rows.isEmpty()) {
                     model.addAttribute("error", "Login hoặc mật khẩu không đúng!");
                     return "login";
@@ -79,8 +74,8 @@ public class LoginController {
                     session.setAttribute("sqlLogin", "pgv_admin");
                     session.setAttribute("sqlPassword", "123456");
                     // PGV: lấy danh sách khoa, mặc định khoa đầu tiên
-                    List<Map<String, Object>> khoaList = jdbc.queryForList(
-                            "SELECT MAKHOA, TENKHOA FROM KHOA ORDER BY MAKHOA");
+                    List<Map<String, Object>> khoaList = StoredProcedure.query(jdbc,
+                            "SP_DanhSachKhoa");
                     session.setAttribute("khoaList", khoaList);
                     if (!khoaList.isEmpty()) {
                         session.setAttribute("maKhoa",

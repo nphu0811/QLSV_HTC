@@ -19,7 +19,7 @@ docker-compose up --build
 Chờ khoảng 1-2 phút để:
 - SQL Server khởi động
 - Database QLDSV_HTC được tạo tự động
-- Tomcat 9 build và deploy WAR
+- Tomcat 8.5 build và deploy WAR
 
 ### Bước 3: Truy cập ứng dụng
 Mở trình duyệt: **http://localhost:8080/HQTCSDL_De3/login**

@@ -28,16 +28,13 @@ public class GiangVienController {
         List<Map<String, Object>> dsgv;
         
         if ("PGV".equals(nhomQuyen)) {
-            dsgv = jdbc.queryForList(
-                "SELECT G.*, K.TENKHOA FROM GIANGVIEN G JOIN KHOA K ON G.MAKHOA=K.MAKHOA ORDER BY G.TEN");
+            dsgv = StoredProcedure.query(jdbc, "SP_DanhSachGiangVien", (Object) null);
         } else {
-            dsgv = jdbc.queryForList(
-                "SELECT G.*, K.TENKHOA FROM GIANGVIEN G JOIN KHOA K ON G.MAKHOA=K.MAKHOA " +
-                "WHERE G.MAKHOA=? ORDER BY G.TEN", maKhoa);
+            dsgv = StoredProcedure.query(jdbc, "SP_DanhSachGiangVien", maKhoa);
         }
         
         model.addAttribute("dsgv", dsgv);
-        model.addAttribute("khoaList", jdbc.queryForList("SELECT MAKHOA, TENKHOA FROM KHOA ORDER BY MAKHOA"));
+        model.addAttribute("khoaList", StoredProcedure.query(jdbc, "SP_DanhSachKhoa"));
         return "giangvien";
     }
 
@@ -57,11 +54,11 @@ public class GiangVienController {
         JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
         try {
             if ("add".equals(action)) {
-                jdbc.update("INSERT INTO GIANGVIEN (MAGV, HO, TEN, HOCVI, HOCHAM, CHUYENMON, MAKHOA) VALUES (?,?,?,?,?,?,?)",
+                StoredProcedure.update(jdbc, "SP_ThemGiangVien",
                         magv.trim(), ho.trim(), ten.trim(), hocvi.trim(), hocham.trim(), chuyenmon.trim(), maKhoa.trim());
                 ra.addFlashAttribute("success", "Thêm giảng viên thành công!");
             } else {
-                jdbc.update("UPDATE GIANGVIEN SET HO=?, TEN=?, HOCVI=?, HOCHAM=?, CHUYENMON=?, MAKHOA=? WHERE MAGV=?",
+                StoredProcedure.update(jdbc, "SP_CapNhatGiangVien",
                         ho.trim(), ten.trim(), hocvi.trim(), hocham.trim(), chuyenmon.trim(), maKhoa.trim(), magv.trim());
                 ra.addFlashAttribute("success", "Cập nhật giảng viên thành công!");
             }
@@ -78,8 +75,8 @@ public class GiangVienController {
             return "redirect:/home";
         }
         try {
-            connHelper.getJdbcTemplate(session)
-                    .update("DELETE FROM GIANGVIEN WHERE MAGV=?", magv.trim());
+            StoredProcedure.update(connHelper.getJdbcTemplate(session),
+                    "SP_XoaGiangVien", magv.trim());
             ra.addFlashAttribute("success", "Xóa giảng viên thành công!");
         } catch (Exception e) {
             ra.addFlashAttribute("error", "Không thể xóa: " + e.getMessage());

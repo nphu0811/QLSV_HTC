@@ -36,9 +36,9 @@ RUN CLASSPATH=$(find build/webapp/WEB-INF/lib -name '*.jar' | tr '\n' ':') && \
 RUN cd build/webapp && jar -cf /app/app.war .
 
 # ============================================
-# Stage 2: Deploy on Tomcat 9
+# Stage 2: Deploy on Tomcat 8.5
 # ============================================
-FROM tomcat:9.0-jdk21-temurin
+FROM tomcat:8.5-jdk21-temurin
 
 # Remove default webapps
 RUN rm -rf /usr/local/tomcat/webapps/*

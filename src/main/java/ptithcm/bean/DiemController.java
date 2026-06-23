@@ -31,12 +31,12 @@ public class DiemController {
         String maKhoa = (String) session.getAttribute("maKhoa");
 
         // Load môn học và niên khóa
-        List<Map<String, Object>> dsmh = jdbc.queryForList("SELECT MAMH, TENMH FROM MONHOC ORDER BY TENMH");
+        List<Map<String, Object>> dsmh = StoredProcedure.query(jdbc, "SP_DanhSachMonHoc");
         List<Map<String, Object>> dsNienKhoa;
         if ("PGV".equals(nhomQuyen)) {
-            dsNienKhoa = jdbc.queryForList("SELECT DISTINCT NIENKHOA FROM LOPTINCHI ORDER BY NIENKHOA DESC");
+            dsNienKhoa = StoredProcedure.query(jdbc, "SP_DanhSachNienKhoa", (Object) null);
         } else {
-            dsNienKhoa = jdbc.queryForList("SELECT DISTINCT NIENKHOA FROM LOPTINCHI WHERE MAKHOA=? ORDER BY NIENKHOA DESC", maKhoa);
+            dsNienKhoa = StoredProcedure.query(jdbc, "SP_DanhSachNienKhoa", maKhoa);
         }
         model.addAttribute("dsmh", dsmh);
         model.addAttribute("dsNienKhoa", dsNienKhoa);
@@ -59,13 +59,11 @@ public class DiemController {
         // Tìm MALTC
         List<Map<String, Object>> ltcRows;
         if ("PGV".equals(nhomQuyen)) {
-            ltcRows = jdbc.queryForList(
-                "SELECT MALTC FROM LOPTINCHI WHERE NIENKHOA=? AND HOCKY=? AND MAMH=? AND NHOM=?",
-                nienkhoa.trim(), hocky, mamh.trim(), nhom);
+            ltcRows = StoredProcedure.query(jdbc, "SP_TimLopTinChi",
+                    nienkhoa.trim(), hocky, mamh.trim(), nhom, null);
         } else {
-            ltcRows = jdbc.queryForList(
-                "SELECT MALTC FROM LOPTINCHI WHERE NIENKHOA=? AND HOCKY=? AND MAMH=? AND NHOM=? AND MAKHOA=?",
-                nienkhoa.trim(), hocky, mamh.trim(), nhom, maKhoa);
+            ltcRows = StoredProcedure.query(jdbc, "SP_TimLopTinChi",
+                    nienkhoa.trim(), hocky, mamh.trim(), nhom, maKhoa);
         }
         
         if (ltcRows.isEmpty()) {
@@ -74,19 +72,14 @@ public class DiemController {
             reloadDropdowns(jdbc, nhomQuyen, maKhoa, model);
             return "diem";
         }
-        int maltc = (Integer) ltcRows.get(0).get("MALTC");
+        int maltc = ((Number) ltcRows.get(0).get("MALTC")).intValue();
 
         // Lấy tên môn
-        String tenmh = jdbc.queryForObject("SELECT TENMH FROM MONHOC WHERE MAMH=?", String.class, mamh.trim());
+        String tenmh = StoredProcedure.object(jdbc, "SP_LayTenMonHoc", String.class, mamh.trim());
 
         // Load danh sách SV đã đăng ký
-        List<Map<String, Object>> dssv = jdbc.queryForList(
-                "SELECT DK.MASV, SV.HO + ' ' + SV.TEN AS HOTENSV, " +
-                "DK.DIEM_CC, DK.DIEM_GK, DK.DIEM_CK " +
-                "FROM DANGKY DK " +
-                "JOIN SINHVIEN SV ON DK.MASV=SV.MASV " +
-                "WHERE DK.MALTC=? AND (DK.HUYDANGKY=0 OR DK.HUYDANGKY IS NULL) " +
-                "ORDER BY SV.TEN, SV.HO", maltc);
+        List<Map<String, Object>> dssv = StoredProcedure.query(jdbc,
+                "SP_DanhSachSinhVienNhapDiem", maltc);
 
         model.addAttribute("dssv", dssv);
         model.addAttribute("maltc", maltc);
@@ -120,7 +113,7 @@ public class DiemController {
                 Integer diemCC = parseIntOrNull(diemCCArr[i]);
                 Double diemGK = parseDoubleOrNull(diemGKArr[i]);
                 Double diemCK = parseDoubleOrNull(diemCKArr[i]);
-                jdbc.update("UPDATE DANGKY SET DIEM_CC=?, DIEM_GK=?, DIEM_CK=? WHERE MALTC=? AND MASV=?",
+                StoredProcedure.update(jdbc, "SP_CapNhatDiem",
                         diemCC, diemGK, diemCK, maltc, masvArr[i].trim());
             }
             ra.addFlashAttribute("success", "Ghi điểm thành công!");
@@ -132,11 +125,11 @@ public class DiemController {
     }
 
     private void reloadDropdowns(JdbcTemplate jdbc, String nhomQuyen, String maKhoa, ModelMap model) {
-        model.addAttribute("dsmh", jdbc.queryForList("SELECT MAMH, TENMH FROM MONHOC ORDER BY TENMH"));
+        model.addAttribute("dsmh", StoredProcedure.query(jdbc, "SP_DanhSachMonHoc"));
         if ("PGV".equals(nhomQuyen)) {
-            model.addAttribute("dsNienKhoa", jdbc.queryForList("SELECT DISTINCT NIENKHOA FROM LOPTINCHI ORDER BY NIENKHOA DESC"));
+            model.addAttribute("dsNienKhoa", StoredProcedure.query(jdbc, "SP_DanhSachNienKhoa", (Object) null));
         } else {
-            model.addAttribute("dsNienKhoa", jdbc.queryForList("SELECT DISTINCT NIENKHOA FROM LOPTINCHI WHERE MAKHOA=? ORDER BY NIENKHOA DESC", maKhoa));
+            model.addAttribute("dsNienKhoa", StoredProcedure.query(jdbc, "SP_DanhSachNienKhoa", maKhoa));
         }
     }
 

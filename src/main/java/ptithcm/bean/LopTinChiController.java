@@ -28,24 +28,16 @@ public class LopTinChiController {
         List<Map<String, Object>> dsltc;
         List<Map<String, Object>> dsgv;
         if ("PGV".equals(nhomQuyen)) {
-             dsltc = jdbc.queryForList(
-                "SELECT LTC.*, MH.TENMH, GV.HO + ' ' + GV.TEN AS HOTENGV, " +
-                "(SELECT COUNT(*) FROM DANGKY DK WHERE DK.MALTC=LTC.MALTC AND (DK.HUYDANGKY=0 OR DK.HUYDANGKY IS NULL)) AS SOSVDK " +
-                "FROM LOPTINCHI LTC JOIN MONHOC MH ON LTC.MAMH=MH.MAMH JOIN GIANGVIEN GV ON LTC.MAGV=GV.MAGV " +
-                "ORDER BY LTC.NIENKHOA DESC, LTC.HOCKY, MH.TENMH, LTC.NHOM");
-             dsgv = jdbc.queryForList("SELECT MAGV, HO + ' ' + TEN AS HOTENGV FROM GIANGVIEN ORDER BY TEN");
+             dsltc = StoredProcedure.query(jdbc, "SP_DanhSachLopTinChi", (Object) null);
+             dsgv = StoredProcedure.query(jdbc, "SP_DanhSachGiangVienDropdown", (Object) null);
         } else {
-             dsltc = jdbc.queryForList(
-                "SELECT LTC.*, MH.TENMH, GV.HO + ' ' + GV.TEN AS HOTENGV, " +
-                "(SELECT COUNT(*) FROM DANGKY DK WHERE DK.MALTC=LTC.MALTC AND (DK.HUYDANGKY=0 OR DK.HUYDANGKY IS NULL)) AS SOSVDK " +
-                "FROM LOPTINCHI LTC JOIN MONHOC MH ON LTC.MAMH=MH.MAMH JOIN GIANGVIEN GV ON LTC.MAGV=GV.MAGV " +
-                "WHERE LTC.MAKHOA=? ORDER BY LTC.NIENKHOA DESC, LTC.HOCKY, MH.TENMH, LTC.NHOM", maKhoa);
-             dsgv = jdbc.queryForList("SELECT MAGV, HO + ' ' + TEN AS HOTENGV FROM GIANGVIEN WHERE MAKHOA=? ORDER BY TEN", maKhoa);
+             dsltc = StoredProcedure.query(jdbc, "SP_DanhSachLopTinChi", maKhoa);
+             dsgv = StoredProcedure.query(jdbc, "SP_DanhSachGiangVienDropdown", maKhoa);
         }
         model.addAttribute("dsltc", dsltc);
-        model.addAttribute("dsmh", jdbc.queryForList("SELECT MAMH, TENMH FROM MONHOC ORDER BY TENMH"));
+        model.addAttribute("dsmh", StoredProcedure.query(jdbc, "SP_DanhSachMonHoc"));
         model.addAttribute("dsgv", dsgv);
-        model.addAttribute("khoaList", jdbc.queryForList("SELECT MAKHOA, TENKHOA FROM KHOA ORDER BY MAKHOA"));
+        model.addAttribute("khoaList", StoredProcedure.query(jdbc, "SP_DanhSachKhoa"));
         return "loptinchi";
     }
 
@@ -81,13 +73,11 @@ public class LopTinChiController {
 
         try {
             if ("add".equals(action)) {
-                jdbc.update("INSERT INTO LOPTINCHI (NIENKHOA,HOCKY,MAMH,NHOM,MAGV,MAKHOA,SOSVTOITHIEU,HUYLOP) " +
-                            "VALUES (?,?,?,?,?,?,?,0)",
+                StoredProcedure.update(jdbc, "SP_ThemLopTinChi",
                         nienkhoa.trim(), hocky, mamh.trim(), nhom, magv.trim(), kh, sosvtoithieu);
                 ra.addFlashAttribute("success", "Mở lớp tín chỉ thành công!");
             } else if (maltc != null) {
-                jdbc.update("UPDATE LOPTINCHI SET NIENKHOA=?,HOCKY=?,MAMH=?,NHOM=?,MAGV=?,SOSVTOITHIEU=? " +
-                            "WHERE MALTC=?",
+                StoredProcedure.update(jdbc, "SP_CapNhatLopTinChi",
                         nienkhoa.trim(), hocky, mamh.trim(), nhom, magv.trim(), sosvtoithieu, maltc);
                 ra.addFlashAttribute("success", "Cập nhật lớp tín chỉ thành công!");
             }
@@ -104,8 +94,8 @@ public class LopTinChiController {
             return "redirect:/home";
         }
         try {
-            connHelper.getJdbcTemplate(session)
-                    .update("DELETE FROM LOPTINCHI WHERE MALTC=?", maltc);
+            StoredProcedure.update(connHelper.getJdbcTemplate(session),
+                    "SP_XoaLopTinChi", maltc);
             ra.addFlashAttribute("success", "Xóa lớp tín chỉ thành công!");
         } catch (Exception e) {
             ra.addFlashAttribute("error", "Không thể xóa: " + e.getMessage());
