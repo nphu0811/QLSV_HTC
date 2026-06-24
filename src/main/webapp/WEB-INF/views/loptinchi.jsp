@@ -124,7 +124,7 @@
                         </tr></thead>
                         <tbody>
                             <c:forEach items="${dsltc}" var="l">
-                                <tr onclick="selectLTC(this, ${l.MALTC})">
+                                <tr onclick="selectLTC(this, '${l.MALTC}')">
                                     <td data-col="MALTC">${l.MALTC}</td>
                                     <td data-col="NIENKHOA">${l.NIENKHOA}</td>
                                     <td data-col="HOCKY">${l.HOCKY}</td>
