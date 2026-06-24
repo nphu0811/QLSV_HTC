@@ -175,26 +175,36 @@ function selectLTC(row, maltc) {
             }
         }
     });
-}
-function btnThemLTC() {
-    var action = document.getElementById('ltcAction').value;
-    var isAdd = action === 'add';
+    // Clear dirty flag and warnings on selection
     var form = document.getElementById('ltcForm');
-    
-    if (isAdd && form) {
-        var isDirty = false;
-        var inputs = form.querySelectorAll('input[type="text"], input[type="number"]');
-        inputs.forEach(function(inp) {
-            if (inp.value && inp.value.trim() !== '') {
-                isDirty = true;
-            }
-        });
-        if (isDirty) {
-            if (!confirm('Dữ liệu đang nhập chưa được lưu. Để lưu lại, vui lòng nhấn nút "Ghi". Bạn có chắc chắn muốn xóa hết dữ liệu để nhập mới?')) {
-                return;
-            }
+    if (form) {
+        form.removeAttribute('data-dirty');
+        if (typeof clearFormWarning === 'function') {
+            clearFormWarning(form);
         }
     }
+}
+function btnThemLTC() {
+    var form = document.getElementById('ltcForm');
+    if (!form) return;
+    
+    var isDirty = form.getAttribute('data-dirty') === 'true';
+    var confirmClear = form.getAttribute('data-confirm-clear') === 'true';
+    
+    if (isDirty && !confirmClear) {
+        if (typeof showFormWarning === 'function') {
+            showFormWarning(form, 'Dữ liệu đang nhập chưa được lưu. Để lưu lại, vui lòng nhấn nút "Ghi". Hoặc nhấn nút "Thêm" một lần nữa để xác nhận xóa sạch dữ liệu.');
+        } else {
+            if (!confirm('Dữ liệu đang nhập chưa được lưu. Bạn có muốn xóa sạch để nhập mới?')) return;
+        }
+        form.setAttribute('data-confirm-clear', 'true');
+        return;
+    }
+    
+    if (typeof clearFormWarning === 'function') {
+        clearFormWarning(form);
+    }
+    form.removeAttribute('data-dirty');
     
     document.getElementById('ltcAction').value = 'add';
     document.getElementById('ltcMaltc').value = '';
