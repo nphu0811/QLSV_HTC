@@ -72,9 +72,22 @@ public class LopTinChiController {
                 ra.addFlashAttribute("error", "Niên khóa không hợp lệ: năm sau phải bằng năm trước + 1.");
                 return "redirect:/loptinchi";
             }
+            
             int currentYear = java.time.Year.now().getValue();
-            if (startYear < currentYear) {
-                ra.addFlashAttribute("error", "Không được mở/sửa lớp tín chỉ cho niên khóa đã qua (trước năm " + currentYear + ").");
+            boolean isNewOrChanged = true;
+            if ("update".equals(action) && maltc != null) {
+                try {
+                    String oldNienKhoa = jdbc.queryForObject("SELECT NIENKHOA FROM dbo.LOPTINCHI WHERE MALTC = ?", String.class, maltc);
+                    if (oldNienKhoa != null && oldNienKhoa.trim().equals(nk)) {
+                        isNewOrChanged = false;
+                    }
+                } catch (Exception e) {
+                    // Bỏ qua
+                }
+            }
+            
+            if (isNewOrChanged && endYear < currentYear) {
+                ra.addFlashAttribute("error", "Không được mở niên khóa đã kết thúc trong quá khứ (trước năm " + currentYear + ").");
                 return "redirect:/loptinchi";
             }
         } catch (Exception e) {

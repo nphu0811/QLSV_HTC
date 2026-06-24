@@ -39,8 +39,7 @@
                                     <c:if test="${sessionScope.nhomQuyen == 'PGV'}">
                                         <div class="col-12 mt-2">
                                             <label class="form-label">Khoa</label>
-                                            <select name="maKhoa" class="form-select">
-                                                <option value="">-- TOÀN TRƯỜNG --</option>
+                                            <select name="maKhoa" class="form-select" required>
                                                 <c:forEach items="${sessionScope.khoaList}" var="k">
                                                     <option value="${k.MAKHOA}">${k.TENKHOA}</option>
                                                 </c:forEach>

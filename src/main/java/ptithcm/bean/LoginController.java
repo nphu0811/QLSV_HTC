@@ -95,7 +95,9 @@ public class LoginController {
                         session.setAttribute("sqlLogin", "khoa_vt");
                         session.setAttribute("sqlPassword", "khoa456");
                     } else {
-                        throw new RuntimeException("Khoa '" + maKhoa + "' chưa được cấu hình tài khoản kết nối SQL Server login riêng!");
+                        // Khoa mới tạo động: sử dụng login chung khoa_chung
+                        session.setAttribute("sqlLogin", "khoa_chung");
+                        session.setAttribute("sqlPassword", "khoachung123");
                     }
                 }
             }

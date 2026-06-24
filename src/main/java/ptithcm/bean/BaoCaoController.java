@@ -49,6 +49,10 @@ public class BaoCaoController {
         String selectedKhoa = null;
         if ("PGV".equals(nhomQuyen)) {
             selectedKhoa = (maKhoa != null && !maKhoa.trim().isEmpty()) ? maKhoa.trim() : null;
+            if (selectedKhoa == null) {
+                model.addAttribute("error", "Vui lòng chọn một khoa cụ thể!");
+                return "baocao_report";
+            }
         } else { // KHOA
             selectedKhoa = userKhoa;
         }
@@ -56,12 +60,7 @@ public class BaoCaoController {
         List<Map<String, Object>> data = StoredProcedure.query(jdbc,
                 "SP_BaoCaoDSLopTinChi", nienkhoa.trim(), hocky, selectedKhoa);
 
-        String tenKhoaDisplay = "";
-        if (selectedKhoa == null) {
-            tenKhoaDisplay = "TOÀN TRƯỜNG";
-        } else {
-            tenKhoaDisplay = getTenKhoa(jdbc, selectedKhoa).toUpperCase();
-        }
+        String tenKhoaDisplay = getTenKhoa(jdbc, selectedKhoa).toUpperCase();
 
         model.addAttribute("tenKhoa", tenKhoaDisplay);
         model.addAttribute("reportType", "DS_LTC");
@@ -89,14 +88,20 @@ public class BaoCaoController {
         List<Map<String, Object>> ltcRows = StoredProcedure.query(jdbc,
                 "SP_TimLopTinChi", nienkhoa.trim(), hocky, mamh.trim(), nhom, khoaFilter);
         
-        String tenKhoaDisplay = "PGV".equals(nhomQuyen) ? "TOÀN TRƯỜNG" : getTenKhoa(jdbc, userKhoa).toUpperCase();
-        model.addAttribute("tenKhoa", tenKhoaDisplay);
-
         if (ltcRows.isEmpty()) {
             model.addAttribute("error", "Không tìm thấy lớp tín chỉ hợp lệ hoặc bạn không có quyền xem lớp này!");
             return "baocao_report";
         }
         int maltc = ((Number) ltcRows.get(0).get("MALTC")).intValue();
+
+        // Lấy tên khoa thực tế của lớp tín chỉ
+        try {
+            String ltcKhoa = jdbc.queryForObject("SELECT MAKHOA FROM dbo.LOPTINCHI WHERE MALTC = ?", String.class, maltc);
+            String tenKhoaDisplay = getTenKhoa(jdbc, ltcKhoa).toUpperCase();
+            model.addAttribute("tenKhoa", tenKhoaDisplay);
+        } catch (Exception e) {
+            model.addAttribute("tenKhoa", "KHOA");
+        }
 
         List<Map<String, Object>> data = StoredProcedure.query(jdbc,
                 "SP_BaoCaoDSSinhVienDangKy", maltc);
@@ -128,14 +133,20 @@ public class BaoCaoController {
         List<Map<String, Object>> ltcRows = StoredProcedure.query(jdbc,
                 "SP_TimLopTinChi", nienkhoa.trim(), hocky, mamh.trim(), nhom, khoaFilter);
         
-        String tenKhoaDisplay = "PGV".equals(nhomQuyen) ? "TOÀN TRƯỜNG" : getTenKhoa(jdbc, userKhoa).toUpperCase();
-        model.addAttribute("tenKhoa", tenKhoaDisplay);
-
         if (ltcRows.isEmpty()) {
             model.addAttribute("error", "Không tìm thấy lớp tín chỉ hợp lệ hoặc bạn không có quyền xem bảng điểm lớp này!");
             return "baocao_report";
         }
         int maltc = ((Number) ltcRows.get(0).get("MALTC")).intValue();
+
+        // Lấy tên khoa thực tế của lớp tín chỉ
+        try {
+            String ltcKhoa = jdbc.queryForObject("SELECT MAKHOA FROM dbo.LOPTINCHI WHERE MALTC = ?", String.class, maltc);
+            String tenKhoaDisplay = getTenKhoa(jdbc, ltcKhoa).toUpperCase();
+            model.addAttribute("tenKhoa", tenKhoaDisplay);
+        } catch (Exception e) {
+            model.addAttribute("tenKhoa", "KHOA");
+        }
 
         List<Map<String, Object>> data = StoredProcedure.query(jdbc,
                 "SP_BaoCaoBangDiem", maltc);
