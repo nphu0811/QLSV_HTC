@@ -157,16 +157,16 @@ public class DiemController {
                 String gkStr = diemGKArr[i];
                 if (gkStr != null && !gkStr.trim().isEmpty()) {
                     Double diemGK = parseDoubleOrNull(gkStr);
-                    if (diemGK == null || diemGK < 0.0 || diemGK > 10.0 || (diemGK * 2) % 1 != 0) {
-                        throw new IllegalArgumentException("Sinh viên " + hoTen + " (" + msv + "): Điểm giữa kỳ phải là số từ 0 đến 10 và là bội số của 0.5.");
+                    if (diemGK == null || diemGK < 0.0 || diemGK > 10.0) {
+                        throw new IllegalArgumentException("Sinh viên " + hoTen + " (" + msv + "): Điểm giữa kỳ phải là số từ 0 đến 10.");
                     }
                 }
                 
                 String ckStr = diemCKArr[i];
                 if (ckStr != null && !ckStr.trim().isEmpty()) {
                     Double diemCK = parseDoubleOrNull(ckStr);
-                    if (diemCK == null || diemCK < 0.0 || diemCK > 10.0 || (diemCK * 2) % 1 != 0) {
-                        throw new IllegalArgumentException("Sinh viên " + hoTen + " (" + msv + "): Điểm cuối kỳ phải là số từ 0 đến 10 và là bội số của 0.5.");
+                    if (diemCK == null || diemCK < 0.0 || diemCK > 10.0) {
+                        throw new IllegalArgumentException("Sinh viên " + hoTen + " (" + msv + "): Điểm cuối kỳ phải là số từ 0 đến 10.");
                     }
                 }
             }
@@ -190,7 +190,13 @@ public class DiemController {
                             String msv = masvArr[i].trim();
                             Integer diemCC = parseIntOrNull(diemCCArr[i]);
                             Double diemGK = parseDoubleOrNull(diemGKArr[i]);
+                            if (diemGK != null) {
+                                diemGK = Math.round(diemGK * 2.0) / 2.0;
+                            }
                             Double diemCK = parseDoubleOrNull(diemCKArr[i]);
+                            if (diemCK != null) {
+                                diemCK = Math.round(diemCK * 2.0) / 2.0;
+                            }
                             
                             StoredProcedure.update(localJdbc, "SP_CapNhatDiem",
                                     diemCC, diemGK, diemCK, finalRealMaltc, msv);

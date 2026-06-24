@@ -771,13 +771,12 @@ BEGIN
         THROW 50000, N'Điểm nhập vào phải nằm trong khoảng từ 0 đến 10.', 1;
     END;
 
+    -- Tự động làm tròn điểm GK và CK về bội số của 0.5 gần nhất
     IF @DIEM_GK IS NOT NULL
-       AND ABS(@DIEM_GK * 2 - ROUND(@DIEM_GK * 2, 0)) > 0.000001
-        THROW 50001, N'Điểm giữa kỳ phải là bội số của 0.5.', 1;
+        SET @DIEM_GK = ROUND(@DIEM_GK * 2, 0) / 2.0;
 
     IF @DIEM_CK IS NOT NULL
-       AND ABS(@DIEM_CK * 2 - ROUND(@DIEM_CK * 2, 0)) > 0.000001
-        THROW 50002, N'Điểm cuối kỳ phải là bội số của 0.5.', 1;
+        SET @DIEM_CK = ROUND(@DIEM_CK * 2, 0) / 2.0;
 
     UPDATE dbo.DANGKY
     SET DIEM_CC = @DIEM_CC,

@@ -14,8 +14,8 @@ Tài liệu này tóm tắt kết quả sửa đổi dự án **QLSV_HTC** nhằ
     2. Kiểm tra theo các login cứng hệ thống (`khoa_cntt`, `khoa_vt`, `khoa_chung`).
     3. So khớp linh hoạt dựa trên tên login (ví dụ: login chứa từ khóa `cntt`, `vt` hay tên khoa cụ thể) để chặn trường hợp giảng viên tạo login tùy ý trong SSMS rồi gán vào role `KHOA` để sửa điểm trái phép cho khoa khác.
 
-- **Bắt buộc điểm GK và CK theo bước 0.5 trong SP_CapNhatDiem:**
-  - Đã thêm kiểm tra trong `SP_CapNhatDiem` để đảm bảo nếu điểm giữa kỳ (`@DIEM_GK`) hoặc điểm cuối kỳ (`@DIEM_CK`) khác NULL thì bắt buộc phải là bội số của 0.5 (đáp ứng đúng yêu cầu của đề bài ngay tại mức Database).
+- **Tự động làm tròn điểm GK và CK về bước 0.5 trong SP_CapNhatDiem và Java Backend:**
+  - Thay vì báo lỗi và bắt người dùng nhập lại, hệ thống sẽ tự động làm tròn điểm giữa kỳ (`@DIEM_GK`) và điểm cuối kỳ (`@DIEM_CK`) về bội số gần nhất của 0.5 (ví dụ: 9.3 -> 9.5; 9.1 -> 9.0) cả ở mức Java Controller và Stored Procedure (đáp ứng đúng yêu cầu của đề bài một cách tự động và thông minh).
 
 - **Kiểm tra KHOA quản lý tài khoản giảng viên khoa khác:**
   - Thêm logic kiểm tra khoa của giảng viên đích so với khoa của tài khoản SQL đang thực thi trong `SP_LuuTaiKhoanGiangVien` và `SP_XoaTaiKhoanTheoGiangVien`. Nếu tài khoản thuộc nhóm `KHOA` cố tình lưu hoặc xóa tài khoản của giảng viên thuộc khoa khác bằng SSMS, stored procedure sẽ từ chối và báo lỗi rõ ràng.
@@ -42,12 +42,10 @@ Tài liệu này tóm tắt kết quả sửa đổi dự án **QLSV_HTC** nhằ
   - Chạy `EXEC SP_CapNhatDiem @DIEM_CC=10, @MALTC=4, @MASV='N15DCCN001'` -> Bị chặn và báo lỗi rõ ràng:
     > *Tài khoản khoa_cntt thuộc khoa CNTT không được phép sửa điểm của khoa VT.*
 
-### Ca kiểm thử 3: Kiểm tra bước điểm 0.5 trong `SP_CapNhatDiem`
-- **Cách thực hiện:** Đăng nhập bằng `khoa_cntt` và gọi `SP_CapNhatDiem` với điểm lẻ (không chia hết cho 0.5):
-  - `EXEC SP_CapNhatDiem @DIEM_CC=10, @DIEM_GK=7.3, @MALTC=1, @MASV='N15DCCN001'`
-- **Kết quả:** Báo lỗi từ chối thành công:
-  > *Msg 50001, Level 16, State 1, Server ..., Procedure SP_CapNhatDiem, Line ...*
-  > *Điểm giữa kỳ phải là bội số của 0.5.*
+### Ca kiểm thử 3: Tự động làm tròn điểm về bước 0.5 trong `SP_CapNhatDiem`
+- **Cách thực hiện:** Đăng nhập bằng `khoa_cntt` và gọi `SP_CapNhatDiem` với điểm lẻ (ví dụ: `7.3` cho giữa kỳ và `8.1` cho cuối kỳ):
+  - `EXEC SP_CapNhatDiem @DIEM_CC=10, @DIEM_GK=7.3, @DIEM_CK=8.1, @MALTC=1, @MASV='N15DCCN001'`
+- **Kết quả:** Giao dịch lưu điểm thành công. Khi truy vấn lại bảng `DANGKY`, điểm GK được lưu là `7.5` và điểm CK được lưu là `8.0`.
 
 ### Ca kiểm thử 4: Kiểm tra KHOA quản lý tài khoản giảng viên khoa khác
 - **Cách thực hiện:** Đăng nhập bằng `khoa_cntt` và gọi lưu/xóa tài khoản giảng viên `GV04` (thuộc khoa `VT`):
