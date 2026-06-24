@@ -93,8 +93,7 @@ public class DiemController {
     }
 
     @RequestMapping(value = "/save", method = RequestMethod.POST)
-    public String saveDiem(@RequestParam int maltc,
-                           @RequestParam String nienkhoa,
+    public String saveDiem(@RequestParam String nienkhoa,
                            @RequestParam int hocky,
                            @RequestParam String mamh,
                            @RequestParam int nhom,
@@ -108,19 +107,106 @@ public class DiemController {
             return "redirect:/home";
         }
         JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
+        
+        int realMaltc = 0;
+        try {
+            List<Map<String, Object>> ltcRows;
+            if ("PGV".equals(nhomQuyen)) {
+                ltcRows = StoredProcedure.query(jdbc, "SP_TimLopTinChi",
+                        nienkhoa.trim(), hocky, mamh.trim(), nhom, null);
+            } else {
+                String maKhoa = (String) session.getAttribute("maKhoa");
+                ltcRows = StoredProcedure.query(jdbc, "SP_TimLopTinChi",
+                        nienkhoa.trim(), hocky, mamh.trim(), nhom, maKhoa);
+            }
+            if (ltcRows.isEmpty()) {
+                ra.addFlashAttribute("error", "Không tìm thấy lớp tín chỉ hợp lệ hoặc bạn không có quyền sửa điểm lớp này!");
+                return "redirect:/diem";
+            }
+            realMaltc = ((Number) ltcRows.get(0).get("MALTC")).intValue();
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", "Lỗi xác thực lớp tín chỉ: " + StoredProcedure.getErrorMessage(e));
+            return "redirect:/diem";
+        }
+
+        // Lấy thông tin họ tên sinh viên để báo lỗi chi tiết
+        Map<String, String> svMap = new java.util.HashMap<>();
+        try {
+            List<Map<String, Object>> dssv = StoredProcedure.query(jdbc, "SP_DanhSachSinhVienNhapDiem", realMaltc);
+            for (Map<String, Object> row : dssv) {
+                svMap.put(row.get("MASV").toString().trim(), row.get("HOTENSV").toString().trim());
+            }
+        } catch (Exception e) {
+            // Bỏ qua nếu có lỗi tải tên, dùng mã làm tên fallback
+        }
+
+        // Validate điểm trước khi thực hiện Transaction
         try {
             for (int i = 0; i < masvArr.length; i++) {
-                Integer diemCC = parseIntOrNull(diemCCArr[i]);
-                Double diemGK = parseDoubleOrNull(diemGKArr[i]);
-                Double diemCK = parseDoubleOrNull(diemCKArr[i]);
-                StoredProcedure.update(jdbc, "SP_CapNhatDiem",
-                        diemCC, diemGK, diemCK, maltc, masvArr[i].trim());
+                String msv = masvArr[i].trim();
+                String hoTen = svMap.getOrDefault(msv, msv);
+                
+                String ccStr = diemCCArr[i];
+                if (ccStr != null && !ccStr.trim().isEmpty()) {
+                    Integer diemCC = parseIntOrNull(ccStr);
+                    if (diemCC == null || diemCC < 0 || diemCC > 10) {
+                        throw new IllegalArgumentException("Sinh viên " + hoTen + " (" + msv + "): Điểm chuyên cần phải là số nguyên từ 0 đến 10.");
+                    }
+                }
+                
+                String gkStr = diemGKArr[i];
+                if (gkStr != null && !gkStr.trim().isEmpty()) {
+                    Double diemGK = parseDoubleOrNull(gkStr);
+                    if (diemGK == null || diemGK < 0.0 || diemGK > 10.0 || (diemGK * 2) % 1 != 0) {
+                        throw new IllegalArgumentException("Sinh viên " + hoTen + " (" + msv + "): Điểm giữa kỳ phải là số từ 0 đến 10 và là bội số của 0.5.");
+                    }
+                }
+                
+                String ckStr = diemCKArr[i];
+                if (ckStr != null && !ckStr.trim().isEmpty()) {
+                    Double diemCK = parseDoubleOrNull(ckStr);
+                    if (diemCK == null || diemCK < 0.0 || diemCK > 10.0 || (diemCK * 2) % 1 != 0) {
+                        throw new IllegalArgumentException("Sinh viên " + hoTen + " (" + msv + "): Điểm cuối kỳ phải là số từ 0 đến 10 và là bội số của 0.5.");
+                    }
+                }
             }
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("error", e.getMessage());
+            return "redirect:/diem";
+        }
+
+        final int finalRealMaltc = realMaltc;
+        try {
+            jdbc.execute(new org.springframework.jdbc.core.ConnectionCallback<Void>() {
+                @Override
+                public Void doInConnection(java.sql.Connection con) throws java.sql.SQLException {
+                    con.setAutoCommit(false);
+                    try {
+                        org.springframework.jdbc.datasource.SingleConnectionDataSource scds = 
+                                new org.springframework.jdbc.datasource.SingleConnectionDataSource(con, true);
+                        JdbcTemplate localJdbc = new JdbcTemplate(scds);
+                        
+                        for (int i = 0; i < masvArr.length; i++) {
+                            String msv = masvArr[i].trim();
+                            Integer diemCC = parseIntOrNull(diemCCArr[i]);
+                            Double diemGK = parseDoubleOrNull(diemGKArr[i]);
+                            Double diemCK = parseDoubleOrNull(diemCKArr[i]);
+                            
+                            StoredProcedure.update(localJdbc, "SP_CapNhatDiem",
+                                    diemCC, diemGK, diemCK, finalRealMaltc, msv);
+                        }
+                        con.commit();
+                    } catch (Exception e) {
+                        con.rollback();
+                        throw new java.sql.SQLException(e.getMessage(), e);
+                    }
+                    return null;
+                }
+            });
             ra.addFlashAttribute("success", "Ghi điểm thành công!");
         } catch (Exception e) {
             ra.addFlashAttribute("error", "Lỗi ghi điểm: " + StoredProcedure.getErrorMessage(e));
         }
-        // Redirect back with params
         return "redirect:/diem";
     }
 

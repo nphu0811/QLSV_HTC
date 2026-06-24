@@ -50,72 +50,81 @@
             <div class="col-md-9">
                 <c:if test="${not empty selectedLop}">
                     <%-- Form nhập SV --%>
-                    <div class="card card-custom mb-3">
-                        <div class="card-header"><i class="fas fa-edit"></i> Thông tin Sinh viên - Lớp ${selectedLop}</div>
-                        <div class="card-body">
-                            <form id="svForm" action="${pageContext.request.contextPath}/sinhvien/save" method="post">
-                                <input type="hidden" id="svAction" name="action" value="add">
-                                <input type="hidden" name="malop" value="${selectedLop}">
-                                <div class="row g-2">
-                                    <div class="col-md-2">
-                                        <label class="form-label">Mã SV</label>
-                                        <input type="text" id="svPK" name="masv" data-field="MASV"
-                                               class="form-control form-control-sm" maxlength="10" required>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">Họ</label>
-                                        <input type="text" name="ho" data-field="HO"
-                                               class="form-control form-control-sm" maxlength="50" required>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Tên</label>
-                                        <input type="text" name="ten" data-field="TEN"
-                                               class="form-control form-control-sm" maxlength="10" required>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Phái</label>
-                                        <select name="phai" data-field="PHAI" class="form-select form-select-sm">
-                                            <option value="false">Nam</option>
-                                            <option value="true">Nữ</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">Ngày sinh</label>
-                                        <input type="date" name="ngaysinh" data-field="NGAYSINH"
-                                               class="form-control form-control-sm">
-                                    </div>
-                                    <div class="col-md-7">
-                                        <label class="form-label">Địa chỉ</label>
-                                        <input type="text" name="diachi" data-field="DIACHI"
-                                               class="form-control form-control-sm" maxlength="100">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Đang nghỉ</label>
-                                        <select name="danghihoc" data-field="DANGHIHOC" class="form-select form-select-sm">
-                                            <option value="false">Không</option>
-                                            <option value="true">Có</option>
-                                        </select>
-                                    </div>
+                    <c:choose>
+                        <c:when test="${sessionScope.nhomQuyen == 'PGV'}">
+                            <div class="card card-custom mb-3">
+                                <div class="card-header"><i class="fas fa-edit"></i> Thông tin Sinh viên - Lớp ${selectedLop}</div>
+                                <div class="card-body">
+                                    <form id="svForm" action="${pageContext.request.contextPath}/sinhvien/save" method="post">
+                                        <input type="hidden" id="svAction" name="action" value="add">
+                                        <input type="hidden" name="malop" value="${selectedLop}">
+                                        <div class="row g-2">
+                                            <div class="col-md-2">
+                                                <label class="form-label">Mã SV</label>
+                                                <input type="text" id="svPK" name="masv" data-field="MASV"
+                                                       class="form-control form-control-sm" maxlength="10" required>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Họ</label>
+                                                <input type="text" name="ho" data-field="HO"
+                                                       class="form-control form-control-sm" maxlength="50" required>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Tên</label>
+                                                <input type="text" name="ten" data-field="TEN"
+                                                       class="form-control form-control-sm" maxlength="10" required>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Phái</label>
+                                                <select name="phai" data-field="PHAI" class="form-select form-select-sm">
+                                                    <option value="false">Nam</option>
+                                                    <option value="true">Nữ</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Ngày sinh</label>
+                                                <input type="date" name="ngaysinh" data-field="NGAYSINH"
+                                                       class="form-control form-control-sm">
+                                            </div>
+                                            <div class="col-md-7">
+                                                <label class="form-label">Địa chỉ</label>
+                                                <input type="text" name="diachi" data-field="DIACHI"
+                                                       class="form-control form-control-sm" maxlength="100">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label">Đang nghỉ</label>
+                                                <select name="danghihoc" data-field="DANGHIHOC" class="form-select form-select-sm">
+                                                    <option value="false">Không</option>
+                                                    <option value="true">Có</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="toolbar mt-3">
+                                            <button type="button" class="btn btn-sm btn-primary btn-action" onclick="btnThem('sv')">
+                                                <i class="fas fa-plus"></i> Thêm</button>
+                                            <button type="button" class="btn btn-sm btn-danger btn-action"
+                                                    onclick="btnXoa('sv','${pageContext.request.contextPath}/sinhvien/delete?malop=${selectedLop}')">
+                                                <i class="fas fa-trash"></i> Xóa</button>
+                                            <button type="submit" class="btn btn-sm btn-success btn-action">
+                                                <i class="fas fa-save"></i> Ghi</button>
+                                            <button type="button" class="btn btn-sm btn-warning btn-action" onclick="btnPhucHoi()">
+                                                <i class="fas fa-undo"></i> Phục hồi</button>
+                                            <button type="button" class="btn btn-sm btn-secondary btn-action"
+                                                    onclick="btnThoat('${pageContext.request.contextPath}/home')">
+                                                <i class="fas fa-sign-out-alt"></i> Thoát</button>
+                                        </div>
+                                    </form>
                                 </div>
-                                <div class="toolbar mt-3">
-                                    <c:if test="${sessionScope.nhomQuyen == 'PGV'}">
-                                        <button type="button" class="btn btn-sm btn-primary btn-action" onclick="btnThem('sv')">
-                                            <i class="fas fa-plus"></i> Thêm</button>
-                                        <button type="button" class="btn btn-sm btn-danger btn-action"
-                                                onclick="btnXoa('sv','${pageContext.request.contextPath}/sinhvien/delete?malop=${selectedLop}')">
-                                            <i class="fas fa-trash"></i> Xóa</button>
-                                        <button type="submit" class="btn btn-sm btn-success btn-action">
-                                            <i class="fas fa-save"></i> Ghi</button>
-                                        <button type="button" class="btn btn-sm btn-warning btn-action" onclick="btnPhucHoi()">
-                                            <i class="fas fa-undo"></i> Phục hồi</button>
-                                    </c:if>
-                                    <button type="button" class="btn btn-sm btn-secondary btn-action"
-                                            onclick="btnThoat('${pageContext.request.contextPath}/home')">
-                                        <i class="fas fa-sign-out-alt"></i> Thoát</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+                            </div>
+                        </c:when>
+                        <c:otherwise>
+                            <div class="toolbar mb-3">
+                                <button type="button" class="btn btn-sm btn-secondary btn-action"
+                                        onclick="btnThoat('${pageContext.request.contextPath}/home')">
+                                    <i class="fas fa-sign-out-alt"></i> Thoát</button>
+                            </div>
+                        </c:otherwise>
+                    </c:choose>
 
                     <%-- Bảng SV --%>
                     <div class="card card-custom">

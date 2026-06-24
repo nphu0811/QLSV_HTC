@@ -1,161 +1,66 @@
-# QLDSV_HTC - Walkthrough & Hướng dẫn Phân quyền SQL Server
+# Walkthrough - Báo Cáo Nghiệm Thu & Kiểm Thử QLSV_HTC
 
-## Tổng quan công việc đã hoàn thành
+Tài liệu này tóm tắt kết quả sửa đổi dự án **QLSV_HTC** nhằm đáp ứng đầy đủ 8 ưu tiên trong Đề 3 môn Hệ quản trị cơ sở dữ liệu và các quy định bảo mật của giảng viên.
 
-Đã xây dựng hoàn chỉnh hệ thống **Quản lý Điểm Sinh viên Hệ Tín Chỉ** (QLDSV_HTC) bằng Java Spring MVC, gồm:
-
-#### 4. Phân Quyền PGV & Lược bỏ bộ lọc "Khoa" cứng:
-- **Header:** Đã xoá toàn bộ Menu Widget Cho phép PGV chủ động Chọn Khoa. 
-- **Dashboard:** Nếu `PGV` truy cập, dòng thông tin Khoa xuất hiện trong bảng "Thông Tin Đăng Nhập" tự động được ẩn đi, chỉ KHOA và Sinh viên mới xem mục Khoa.
-- **Backend Controllers:** Các Servlet như `SinhVien`, `Lop`, `LopTinChi`, `Diem`, `BaoCao` đều được tái cấu trúc. Khi biến `nhomQuyen` là `PGV`, hệ thống thay vì kèm theo câu lệnh `WHERE MAKHOA=?` sẽ chuyển thành Query Toàn bộ cơ sở dữ liệu `ORDER BY...`. Phía PGV không còn gặp rào cản chia cắt của Chi nhánh Khoa.
-- **Form Add:** Để đảm bảo khi PGV cập nhật/thêm một Lớp, Sinh Viên hoặc Môn Học mới mà không bị thiếu thông tin Khoa bắt buộc, Dropdown Menu `Chọn Khoa` đã được lồng ghép sẳn vào lưới nhập liệu (Bị Unhide khi login là thẻ quyền `PGV`).
-
----
-
-| Hạng mục | Số lượng | Chi tiết |
-|----------|----------|----------|
-| Java Controllers | 10 files | Login, Home, Lop, SinhVien, MonHoc, LopTinChi, DangKy, Diem, BaoCao, TaiKhoan |
-| Java Utilities | 2 files | ConnectionHelper (dynamic SQL connection), AuthInterceptor |
-| JSP Views | 13 files | Login, Home, 6 CRUD forms, BaoCao, Report view, Header, Sidebar |
-| Static Resources | 2 files | CSS (style.css), JavaScript (app.js) |
-| SQL Scripts | 1 file | setup_security.sql (Logins, Roles, Permissions) |
-| Config | 2 files | spring-config-mvc.xml, web.xml |
-
-## File ZIP
-
-📦 **Vị trí:** `C:\Users\admin\Desktop\HQTCSDL_De3.zip` (8.03 MB)
+## 1. Kết quả chỉnh sửa
+- **Sắp xếp file SQL (Yêu cầu mới):** Đã gộp toàn bộ stored procedure mới vào file `stored_procedures.sql` gốc và toàn bộ phân quyền mới vào file `setup_security.sql` gốc. Hai file SQL patch cũ đã được xóa hoàn toàn khỏi thư mục `sql/`.
+- **Sửa lỗi trang Tài khoản:** Đã tạo stored procedure `SP_DanhSachTaiKhoanGiangVienCoKhoa` trong file `stored_procedures.sql` gốc và phân quyền thực thi cho KHOA và PGV. Trang `/taikhoan` đã hoạt động bình thường, không còn lỗi 500.
+- **An toàn kết nối (Không dùng `sa`):** Đã cấu hình `ConnectionHelper` và `LoginController` sử dụng login `sv` để xác thực đăng nhập thay vì dùng `sa`. Chặn hoàn toàn fallback `sa` cho KHOA và PGV.
+- **Đăng ký hộ LTC (Ưu tiên 1):** Sửa `DangKyController` cho phép PGV nhập `masv` đăng ký hộ, chặn KHOA, SV chỉ được thao tác của chính mình (lấy mã SV từ session ẩn).
+- **Quản lý danh mục Khoa (Ưu tiên 2):** Bổ sung `KhoaController`, `khoa.jsp` và các stored procedure tương ứng. PGV có quyền CRUD, KHOA chỉ được xem, SV bị chặn hoàn toàn.
+- **Chặn dữ liệu quá khứ (Ưu tiên 3):** Validate khóa học (`KHOAHOC`) và niên khóa (`NIENKHOA`) nghiêm ngặt (định dạng `YYYY-YYYY`, năm sau = năm trước + 1, năm bắt đầu $\ge 2026$).
+- **Hoàn thiện phân quyền nhóm KHOA (Ưu tiên 4, 7):** Khóa/ẩn form CRUD trên tất cả các view đối với KHOA. Chặn KHOA xem lớp/sinh viên khoa khác. KHOA chỉ được tạo/xóa tài khoản nhóm KHOA thuộc giảng viên khoa mình.
+- **Nhập điểm & Transaction (Ưu tiên 5):** Sửa `DiemController` validate điểm CC (nguyên 0-10), GK/CK (bước 0.5 từ 0-10). Áp dụng Connection Transaction thủ công để rollback toàn bộ khi có lỗi trên bất kỳ dòng sinh viên nào.
+- **Báo cáo phân quyền (Ưu tiên 6):** SV chỉ xem phiếu điểm cá nhân. KHOA chỉ xem báo cáo khoa mình. PGV chọn khoa khi in danh sách LTC.
 
 ---
 
-## 🔐 HƯỚNG DẪN PHÂN QUYỀN TRONG SQL SERVER
+## 2. Hướng dẫn tài khoản kiểm thử
+Hệ thống sử dụng các tài khoản kiểm thử mặc định sau để phân quyền:
 
-### Bước 1: Mở SQL Server Management Studio (SSMS)
-
-Kết nối vào `localhost\SQLEXPRESS` với tài khoản `sa`.
-
-### Bước 2: Chạy Script phân quyền (Đã chạy tự động)
-
-Script đã được chạy tự động. Nếu cần chạy lại:
-```sql
--- Mở file: sql\setup_security.sql
--- Hoặc chạy bằng SSMS: File → Open → chọn file → Execute
-```
-
-### Bước 3: Kiểm tra Logins đã tạo
-
-Trong SSMS, mở **Security → Logins**, bạn sẽ thấy 4 logins:
-
-| Login | Password | Ý nghĩa |
-|-------|----------|---------|
-| `pgv_admin` | `123456` | Phòng Giáo vụ - toàn quyền |
-| `khoa_cntt` | `khoa123` | Khoa CNTT - quyền hạn chế |
-| `khoa_vt` | `khoa456` | Khoa Viễn Thông - quyền hạn chế |
-| `sv` | `sv123` | Sinh viên (dùng chung) - quyền tối thiểu |
-
-### Bước 4: Kiểm tra Database Roles
-
-Trong SSMS: `QLDSV_HTC → Security → Roles → Database Roles`:
-
-| Role | Members | Quyền |
-|------|---------|-------|
-| **PGV** | pgv_admin | SELECT, INSERT, UPDATE, DELETE trên tất cả bảng |
-| **KHOA** | khoa_cntt, khoa_vt | SELECT trên tất cả; UPDATE trên DANGKY (nhập điểm) |
-| **NHOM_SV** | sv | SELECT trên các bảng; INSERT, UPDATE trên DANGKY (đăng ký) |
-
-### Bước 5: Kiểm tra Permissions (Xác minh trực quan)
-
-Trong SSMS, click chuột phải vào Role `KHOA` → Properties → Securables:
-- ✅ SELECT trên KHOA, LOP, SINHVIEN, MONHOC, GIANGVIEN, LOPTINCHI
-- ✅ SELECT, UPDATE trên DANGKY
-- ❌ KHÔNG có INSERT/DELETE trên KHOA, LOP, SINHVIEN, MONHOC, GIANGVIEN, LOPTINCHI
-
-> [!TIP]
-> Để test quyền thủ công: Trong SSMS, kết nối lại bằng login `khoa_cntt` / `khoa123`, thử chạy:
-> ```sql
-> USE QLDSV_HTC;
-> -- Sẽ thành công (có quyền SELECT):
-> SELECT * FROM LOP;
-> -- Sẽ thất bại (không có quyền INSERT):
-> INSERT INTO LOP VALUES ('TEST', 'Test', '2024-2028', 'CNTT');
-> ```
+| Phân hệ / Nhóm | Tài khoản (Login) | Mật khẩu (Password) | SQL Server Login tương ứng |
+| :--- | :--- | :--- | :--- |
+| **Phòng Giáo Vụ (PGV)** | `pgv_admin` | `123456` | `pgv_admin` (pass: `123456`) |
+| **Khoa Công nghệ thông tin** | `khoa_cntt` | `khoa123` | `khoa_cntt` (pass: `khoa123`) |
+| **Khoa Viễn thông** | `khoa_vt` | `khoa456` | `khoa_vt` (pass: `khoa456`) |
+| **Sinh viên (SV)** | `N15DCCN001` | *Không cần mật khẩu* | `sv` (pass: `sv123`) |
 
 ---
 
-## 🖥️ CÁC CHỨC NĂNG ĐÃ TRIỂN KHAI
+## 3. Kịch bản kiểm thử (Manual Verification)
 
-### 3.1. Đăng nhập
-- **Giảng viên**: Nhập Login + Password → kiểm tra bảng `TaiKhoan`
-- **Sinh viên**: Nhập Mã SV + Password → kiểm tra bảng `SINHVIEN`
-- Sinh viên dùng chung SQL login `sv`, nhưng xác thực bằng MASV riêng
+### Kịch bản 1: Phòng Giáo Vụ (PGV)
+1. Đăng nhập bằng `pgv_admin` / `123456`.
+2. Truy cập menu **Khoa**:
+   - Nhấn **Thêm**, nhập mã khoa `TEST` và tên khoa `Khoa Test`.
+   - Nhấn **Ghi** để lưu $\rightarrow$ Hệ thống báo thêm thành công.
+   - Chọn dòng `TEST` vừa thêm, sửa tên thành `Khoa Test 2`, nhấn **Ghi** $\rightarrow$ Hệ thống cập nhật thành công.
+   - Nhấn **Xóa** và xác nhận $\rightarrow$ Hệ thống xóa khoa thành công.
+3. Truy cập menu **Đăng ký hộ LTC**:
+   - Nhập mã sinh viên `N15DCCN001` $\rightarrow$ Nhấn **Tìm sinh viên**.
+   - Giao diện tự động hiển thị thông tin chi tiết của sinh viên `N15DCCN001` và các lớp đã đăng ký.
+   - Chọn niên khóa, học kỳ và đăng ký/hủy lớp hộ sinh viên đó thành công.
 
-### 3.2. Nhập liệu (PGV)
-- **Danh mục Lớp**: Form CRUD (Thêm/Xóa/Ghi/Phục hồi/Thoát), lọc theo khoa
-- **Sinh viên**: SubForm 2 cấp (chọn Lớp → xem DS SV)
-- **Môn học**: Form CRUD đầy đủ
-- **Lớp tín chỉ**: Mở/quản lý lớp TC với dropdown Môn học + GV
-- **Đăng ký LTC** (SV): Nhập Niên khóa + HK → hiện DS lớp TC chưa hủy → Đăng ký
-- **Nhập điểm** (PGV + KHOA): Chọn NK/HK/MH/Nhóm → hiện bảng SV → nhập điểm → Ghi
+### Kịch bản 2: Khoa (KHOA - ví dụ CNTT)
+1. Đăng nhập bằng `khoa_cntt` / `khoa123`.
+2. Truy cập các menu **Khoa**, **Lớp**, **Môn học**, **Sinh viên**, **Giảng viên**, **Lớp tín chỉ**:
+   - Form nhập liệu và các nút CRUD đều bị ẩn.
+   - Chỉ hiển thị dữ liệu để xem.
+3. Truy cập menu **Nhập điểm**:
+   - Chọn môn học thuộc khoa CNTT (ví dụ: Cấu trúc dữ liệu & Giải thuật).
+   - Thử sửa điểm một sinh viên bất kỳ thành giá trị lỗi (ví dụ điểm GK = `7.3`).
+   - Nhấn **Ghi điểm** $\rightarrow$ Hệ thống rollback toàn bộ dữ liệu (không có sinh viên nào bị lưu điểm) và hiển thị thông báo lỗi tiếng Việt chi tiết chỉ rõ dòng sinh viên có điểm không hợp lệ.
+4. Truy cập menu **Tài khoản**:
+   - Chỉ hiển thị danh sách giảng viên thuộc khoa CNTT.
+   - Drodown chọn nhóm quyền bị khóa cứng ở giá trị `KHOA`.
+   - Chặn KHOA tạo tài khoản cho giảng viên khoa khác hoặc tạo tài khoản nhóm PGV.
 
-### 3.3. Phân quyền
-- **PGV**: Toàn quyền, tạo TK cho PGV/KHOA
-- **KHOA**: Chỉ nhập điểm khoa mình, xem báo cáo khoa mình
-- **SV**: Đăng ký LTC, xem phiếu điểm bản thân
-- Phân quyền enforce ở **2 tầng**: Application + SQL Server Roles
-
-### 3.4. Báo cáo (5 loại)
-1. Danh sách lớp tín chỉ theo NK/HK
-2. DS sinh viên đăng ký LTC
-3. Bảng điểm hết môn (CC×0.1 + GK×0.3 + CK×0.6)
-4. Phiếu điểm SV (điểm max các lần thi)
-5. Bảng điểm tổng kết cuối khóa (Cross-Tab)
-
-### 3.5. Quản trị
-- Tạo/sửa/xóa tài khoản với nhóm quyền PGV hoặc KHOA
-
----
-
-## 🚀 HƯỚNG DẪN CHẠY PROJECT
-
-### Cách 1: Trong Eclipse
-1. Import project: `File → Import → Existing Projects into Workspace`
-2. Chọn thư mục `HQTCSDL_De3`
-3. Cấu hình Server: `Window → Preferences → Server → Runtime → Apache Tomcat 8.5`
-4. Click phải project → `Run As → Run on Server`
-5. Truy cập: `http://localhost:8080/HQTCSDL_De3/login`
-
-### Tài khoản test
-
-| Loại | Login | Password | Mô tả |
-|------|-------|----------|-------|
-| PGV | `pgv_admin` | `123456` | Toàn quyền |
-| KHOA | `khoa_cntt` | `khoa123` | Khoa CNTT |
-| KHOA | `khoa_vt` | `khoa456` | Khoa VT |
-| SV | Bất kỳ MASV (vd: `N15DCCN001`) | `123456` | Sinh viên |
-
----
-
-## 📊 KIẾN TRÚC HỆ THỐNG
-
-```mermaid
-graph TB
-    subgraph "Browser"
-        U["User (PGV/KHOA/SV)"]
-    end
-    subgraph "Tomcat 8.5"
-        AI["AuthInterceptor<br/>Kiểm tra Login"]
-        C["Controllers<br/>(10 controllers)"]
-        CH["ConnectionHelper<br/>Dynamic SQL Login"]
-        JT["JdbcTemplate"]
-    end
-    subgraph "SQL Server Express"
-        DB["QLDSV_HTC"]
-        R["Roles: PGV, KHOA, NHOM_SV"]
-        L["Logins: pgv_admin, khoa_xx, sv"]
-    end
-    U -->|HTTP| AI --> C --> CH --> JT --> DB
-    L --> R
-    CH -->|"Kết nối bằng<br/>SQL Login tương ứng"| L
-```
-
-> [!IMPORTANT]
-> **Dynamic SQL Connection**: Khi user đăng nhập, hệ thống tự động chuyển kết nối SQL Server sang login tương ứng (pgv_admin/khoa_cntt/khoa_vt/sv). SQL Server sẽ tự enforce permissions dựa trên Role. Đây là **phân quyền 2 tầng**: Application layer + Database layer.
+### Kịch bản 3: Sinh viên (SV)
+1. Đăng nhập bằng mã sinh viên `N15DCCN001` (Chọn loại tài khoản là Sinh viên, không cần nhập mật khẩu).
+2. Kiểm tra menu điều hướng bên trái:
+   - Chỉ xuất hiện 3 menu: **Tổng quan**, **Đăng ký lớp tín chỉ**, và **Phiếu điểm**.
+   - Các menu quản lý dữ liệu cơ bản, nhập điểm, báo cáo khác, quản trị tài khoản đều bị ẩn hoàn toàn.
+3. Truy cập menu **Đăng ký lớp tín chỉ**:
+   - Không có form chọn/nhập mã sinh viên. Hệ thống tự động lấy mã `N15DCCN001` từ session để hiển thị thông tin và đăng ký lớp cho chính mình.
+4. Truy cập menu **Phiếu điểm**:
+   - Hệ thống hiển thị trực tiếp phiếu điểm của sinh viên `N15DCCN001` mà không cho phép thay đổi hay nhập mã sinh viên khác.

@@ -35,12 +35,19 @@ public class ConnectionHelper {
 
     private static String getDefaultUser() {
         String user = System.getenv("DB_USER");
-        return (user != null && !user.isEmpty()) ? user : "sa";
+        if (user == null || user.isEmpty() || "sa".equalsIgnoreCase(user.trim())) {
+            return "sv";
+        }
+        return user;
     }
 
     private static String getDefaultPassword() {
         String pass = System.getenv("DB_PASSWORD");
-        return (pass != null && !pass.isEmpty()) ? pass : "123";
+        String user = System.getenv("DB_USER");
+        if (user == null || user.isEmpty() || "sa".equalsIgnoreCase(user.trim())) {
+            return "sv123";
+        }
+        return (pass != null && !pass.isEmpty()) ? pass : "sv123";
     }
 
     /**

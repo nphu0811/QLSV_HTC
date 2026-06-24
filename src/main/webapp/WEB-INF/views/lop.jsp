@@ -1,4 +1,4 @@
-﻿<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -29,29 +29,29 @@
         </c:if>
 
         <%-- Form nhập liệu --%>
-        <div class="card card-custom mb-3">
-            <div class="card-header"><i class="fas fa-edit"></i> Thông tin Lớp</div>
-            <div class="card-body">
-                <form id="lopForm" action="${pageContext.request.contextPath}/lop/save" method="post">
-                    <input type="hidden" id="lopAction" name="action" value="add">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label class="form-label">Mã Lớp</label>
-                            <input type="text" id="lopPK" name="maLop" data-field="MALOP"
-                                   class="form-control" maxlength="10" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Tên Lớp</label>
-                            <input type="text" name="tenLop" data-field="TENLOP"
-                                   class="form-control" maxlength="50" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Khóa học</label>
-                            <input type="text" name="khoaHoc" data-field="KHOAHOC"
-                                   class="form-control" maxlength="9" placeholder="2020-2024" required>
-                        </div>
-                        <c:choose>
-                            <c:when test="${sessionScope.nhomQuyen == 'PGV'}">
+        <c:choose>
+            <c:when test="${sessionScope.nhomQuyen == 'PGV'}">
+                <div class="card card-custom mb-3">
+                    <div class="card-header"><i class="fas fa-edit"></i> Thông tin Lớp</div>
+                    <div class="card-body">
+                        <form id="lopForm" action="${pageContext.request.contextPath}/lop/save" method="post">
+                            <input type="hidden" id="lopAction" name="action" value="add">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Mã Lớp</label>
+                                    <input type="text" id="lopPK" name="maLop" data-field="MALOP"
+                                           class="form-control" maxlength="10" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Tên Lớp</label>
+                                    <input type="text" name="tenLop" data-field="TENLOP"
+                                           class="form-control" maxlength="50" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Khóa học</label>
+                                    <input type="text" name="khoaHoc" data-field="KHOAHOC"
+                                           class="form-control" maxlength="9" placeholder="2020-2024" required>
+                                </div>
                                 <div class="col-md-3">
                                     <label class="form-label">Khoa</label>
                                     <select name="maKhoa" data-field="MAKHOA" class="form-select" required>
@@ -60,31 +60,33 @@
                                         </c:forEach>
                                     </select>
                                 </div>
-                            </c:when>
-                            <c:otherwise>
-                                <input type="hidden" name="maKhoa" data-field="MAKHOA" value="${sessionScope.maKhoa}">
-                            </c:otherwise>
-                        </c:choose>
+                            </div>
+                            <div class="toolbar mt-3">
+                                <button type="button" class="btn btn-primary btn-action" onclick="btnThem('lop')">
+                                    <i class="fas fa-plus"></i> Thêm</button>
+                                <button type="button" class="btn btn-danger btn-action"
+                                        onclick="btnXoa('lop','${pageContext.request.contextPath}/lop/delete')">
+                                    <i class="fas fa-trash"></i> Xóa</button>
+                                <button type="submit" class="btn btn-success btn-action">
+                                    <i class="fas fa-save"></i> Ghi</button>
+                                <button type="button" class="btn btn-warning btn-action" onclick="btnPhucHoi()">
+                                    <i class="fas fa-undo"></i> Phục hồi</button>
+                                <button type="button" class="btn btn-secondary btn-action"
+                                        onclick="btnThoat('${pageContext.request.contextPath}/home')">
+                                    <i class="fas fa-sign-out-alt"></i> Thoát</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="toolbar mt-3">
-                        <c:if test="${sessionScope.nhomQuyen == 'PGV'}">
-                            <button type="button" class="btn btn-primary btn-action" onclick="btnThem('lop')">
-                                <i class="fas fa-plus"></i> Thêm</button>
-                            <button type="button" class="btn btn-danger btn-action"
-                                    onclick="btnXoa('lop','${pageContext.request.contextPath}/lop/delete')">
-                                <i class="fas fa-trash"></i> Xóa</button>
-                            <button type="submit" class="btn btn-success btn-action">
-                                <i class="fas fa-save"></i> Ghi</button>
-                            <button type="button" class="btn btn-warning btn-action" onclick="btnPhucHoi()">
-                                <i class="fas fa-undo"></i> Phục hồi</button>
-                        </c:if>
-                        <button type="button" class="btn btn-secondary btn-action"
-                                onclick="btnThoat('${pageContext.request.contextPath}/home')">
-                            <i class="fas fa-sign-out-alt"></i> Thoát</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                </div>
+            </c:when>
+            <c:otherwise>
+                <div class="toolbar mb-3">
+                    <button type="button" class="btn btn-secondary btn-action"
+                            onclick="btnThoat('${pageContext.request.contextPath}/home')">
+                        <i class="fas fa-sign-out-alt"></i> Thoát</button>
+                </div>
+            </c:otherwise>
+        </c:choose>
 
         <%-- Bảng danh sách --%>
         <div class="card card-custom">

@@ -42,19 +42,20 @@ public class LoginController {
                 String ten = sv.get("TEN").toString().trim();
                 String malop = sv.get("MALOP").toString().trim();
 
-                // Lấy mã khoa từ lớp
-                String maKhoa = StoredProcedure.object(jdbc,
-                        "SP_LayKhoaTheoLop", String.class, malop).trim();
-
                 session.setAttribute("nhomQuyen", "SV");
                 session.setAttribute("masv", masv);
                 session.setAttribute("hoTen", ho + " " + ten);
                 session.setAttribute("displayName", ho + " " + ten);
-                session.setAttribute("maKhoa", maKhoa);
                 session.setAttribute("maLop", malop);
                 // SQL Server login cho SV
                 session.setAttribute("sqlLogin", "sv");
                 session.setAttribute("sqlPassword", "sv123");
+
+                // Lấy mã khoa từ lớp bằng connection của SV
+                JdbcTemplate svJdbc = connHelper.getJdbcTemplate(session);
+                String maKhoa = StoredProcedure.object(svJdbc,
+                        "SP_LayKhoaTheoLop", String.class, malop).trim();
+                session.setAttribute("maKhoa", maKhoa);
 
             } else {
                 // === GIẢNG VIÊN / PGV / KHOA: kiểm tra bảng TaiKhoan ===
@@ -73,8 +74,9 @@ public class LoginController {
                 if ("PGV".equals(nhomQuyen)) {
                     session.setAttribute("sqlLogin", "pgv_admin");
                     session.setAttribute("sqlPassword", "123456");
-                    // PGV: lấy danh sách khoa, mặc định khoa đầu tiên
-                    List<Map<String, Object>> khoaList = StoredProcedure.query(jdbc,
+                    // PGV: lấy danh sách khoa bằng connection của pgv_admin
+                    JdbcTemplate pgvJdbc = connHelper.getJdbcTemplate(session);
+                    List<Map<String, Object>> khoaList = StoredProcedure.query(pgvJdbc,
                             "SP_DanhSachKhoa");
                     session.setAttribute("khoaList", khoaList);
                     if (!khoaList.isEmpty()) {
@@ -93,8 +95,7 @@ public class LoginController {
                         session.setAttribute("sqlLogin", "khoa_vt");
                         session.setAttribute("sqlPassword", "khoa456");
                     } else {
-                        session.setAttribute("sqlLogin", "sa");
-                        session.setAttribute("sqlPassword", "123");
+                        throw new RuntimeException("Khoa '" + maKhoa + "' chưa được cấu hình tài khoản kết nối SQL Server login riêng!");
                     }
                 }
             }

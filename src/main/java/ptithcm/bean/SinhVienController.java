@@ -38,10 +38,23 @@ public class SinhVienController {
 
         // Nếu chọn lớp -> load danh sách SV
         if (malop != null && !malop.isEmpty()) {
+            String cleanLop = malop.trim();
+            // Kiểm tra lớp thuộc khoa nào
+            try {
+                String maKhoaCuaLop = StoredProcedure.object(jdbc, "SP_LayKhoaTheoLop", String.class, cleanLop).trim();
+                if ("KHOA".equals(nhomQuyen)) {
+                    String maKhoaUser = (String) session.getAttribute("maKhoa");
+                    if (!maKhoaUser.equals(maKhoaCuaLop)) {
+                        return "redirect:/home";
+                    }
+                }
+            } catch (Exception e) {
+                return "redirect:/home";
+            }
             List<Map<String, Object>> dssv = StoredProcedure.query(jdbc,
-                    "SP_DanhSachSinhVienTheoLop", malop.trim());
+                    "SP_DanhSachSinhVienTheoLop", cleanLop);
             model.addAttribute("dssv", dssv);
-            model.addAttribute("selectedLop", malop.trim());
+            model.addAttribute("selectedLop", cleanLop);
         }
         return "sinhvien";
     }

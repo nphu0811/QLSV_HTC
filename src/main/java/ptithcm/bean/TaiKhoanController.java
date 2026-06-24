@@ -27,9 +27,17 @@ public class TaiKhoanController {
             return "redirect:/home";
         }
         JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
+        String userKhoa = (String) session.getAttribute("maKhoa");
 
+        // Sử dụng SP mới có trả về MAKHOA thực tế của giảng viên để lọc
         List<Map<String, Object>> dsgv = StoredProcedure.query(jdbc,
-                "SP_DanhSachTaiKhoanGiangVien");
+                "SP_DanhSachTaiKhoanGiangVienCoKhoa");
+        if ("KHOA".equals(nhomQuyen)) {
+            dsgv.removeIf(row -> {
+                Object gvKhoa = row.get("MAKHOA");
+                return gvKhoa == null || !userKhoa.equals(gvKhoa.toString().trim());
+            });
+        }
         model.addAttribute("dsgv", dsgv);
 
         List<Map<String, Object>> khoaList = StoredProcedure.query(jdbc, "SP_DanhSachKhoa");
@@ -48,13 +56,33 @@ public class TaiKhoanController {
         if (!"PGV".equals(sessionQuyen) && !"KHOA".equals(sessionQuyen)) {
             return "redirect:/home";
         }
-        if ("KHOA".equals(sessionQuyen) && "PGV".equals(nhomQuyen.trim())) {
-            ra.addFlashAttribute("error", "Khoa không được cấp tài khoản nhóm PGV!");
-            return "redirect:/taikhoan";
-        }
         JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
-        String mkhoa = "PGV".equals(nhomQuyen.trim()) ? null
-                : (maKhoa != null && !maKhoa.trim().isEmpty() ? maKhoa.trim() : null);
+        String userKhoa = (String) session.getAttribute("maKhoa");
+
+        String mkhoa = null;
+        if ("KHOA".equals(sessionQuyen)) {
+            // Validate giảng viên thuộc khoa mình
+            try {
+                String gvKhoa = StoredProcedure.object(jdbc, "SP_LayKhoaTheoGiangVien", String.class, magv.trim()).trim();
+                if (!userKhoa.equals(gvKhoa)) {
+                    ra.addFlashAttribute("error", "Bạn không được phép tạo/sửa tài khoản cho giảng viên khoa khác!");
+                    return "redirect:/taikhoan";
+                }
+            } catch (Exception e) {
+                ra.addFlashAttribute("error", "Lỗi xác thực giảng viên: " + StoredProcedure.getErrorMessage(e));
+                return "redirect:/taikhoan";
+            }
+            // Nhóm quyền tạo ra chỉ được là KHOA
+            if (!"KHOA".equals(nhomQuyen.trim())) {
+                ra.addFlashAttribute("error", "Khoa chỉ được tạo tài khoản nhóm KHOA!");
+                return "redirect:/taikhoan";
+            }
+            mkhoa = userKhoa;
+        } else { // PGV
+            mkhoa = "PGV".equals(nhomQuyen.trim()) ? null
+                    : (maKhoa != null && !maKhoa.trim().isEmpty() ? maKhoa.trim() : null);
+        }
+
         try {
             StoredProcedure.update(jdbc, "SP_LuuTaiKhoanGiangVien",
                      magv.trim(), login.trim(), matkhau, nhomQuyen.trim(), mkhoa);
@@ -73,7 +101,21 @@ public class TaiKhoanController {
             return "redirect:/home";
         }
         JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
+        String userKhoa = (String) session.getAttribute("maKhoa");
+
         if ("KHOA".equals(sessionQuyen)) {
+            // Validate giảng viên thuộc khoa mình
+            try {
+                String gvKhoa = StoredProcedure.object(jdbc, "SP_LayKhoaTheoGiangVien", String.class, magv.trim()).trim();
+                if (!userKhoa.equals(gvKhoa)) {
+                    ra.addFlashAttribute("error", "Bạn không được phép xóa tài khoản của giảng viên khoa khác!");
+                    return "redirect:/taikhoan";
+                }
+            } catch (Exception e) {
+                ra.addFlashAttribute("error", "Lỗi xác thực giảng viên: " + StoredProcedure.getErrorMessage(e));
+                return "redirect:/taikhoan";
+            }
+
             try {
                 String role = StoredProcedure.object(jdbc, "SP_LayNhomQuyenTheoGiangVien",
                         String.class, magv.trim());
@@ -82,9 +124,10 @@ public class TaiKhoanController {
                     return "redirect:/taikhoan";
                 }
             } catch (Exception e) {
-                // No account found, continue to delete safely.
+                // Không tìm thấy tài khoản, tiếp tục xóa an toàn
             }
         }
+
         try {
             StoredProcedure.update(jdbc, "SP_XoaTaiKhoanTheoGiangVien", magv.trim());
             ra.addFlashAttribute("success", "Xóa tài khoản thành công!");

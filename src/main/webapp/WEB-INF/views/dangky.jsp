@@ -1,4 +1,4 @@
-﻿<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -27,6 +27,29 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
         </c:if>
 
+        <%-- PGV chọn sinh viên --%>
+        <c:if test="${sessionScope.nhomQuyen == 'PGV'}">
+            <div class="card card-custom mb-3">
+                <div class="card-header"><i class="fas fa-user-graduate"></i> Chọn Sinh viên</div>
+                <div class="card-body">
+                    <form action="${pageContext.request.contextPath}/dangky" method="get">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label">Mã sinh viên</label>
+                                <input type="text" name="masv" class="form-control" 
+                                       value="${masv}" placeholder="Nhập mã sinh viên..." required>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Tìm sinh viên
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </c:if>
+
         <%-- Thông tin SV --%>
         <c:if test="${not empty svInfo}">
             <div class="card card-custom mb-3">
@@ -41,118 +64,124 @@
             </div>
         </c:if>
 
-        <%-- Tìm kiếm lớp TC --%>
-        <div class="card card-custom mb-3">
-            <div class="card-header"><i class="fas fa-search"></i> Tìm lớp tín chỉ</div>
-            <div class="card-body">
-                <form action="${pageContext.request.contextPath}/dangky/search" method="post">
-                    <div class="row g-3 align-items-end">
-                        <div class="col-md-3">
-                            <label class="form-label">Niên khóa</label>
-                            <input type="text" name="nienkhoa" class="form-control"
-                                   placeholder="2021-2022" value="${nienkhoa}" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Học kỳ</label>
-                            <select name="hocky" class="form-select" required>
-                                <option value="1" ${hocky == 1 ? 'selected' : ''}>1</option>
-                                <option value="2" ${hocky == 2 ? 'selected' : ''}>2</option>
-                                <option value="3" ${hocky == 3 ? 'selected' : ''}>3</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i> Tìm
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <%-- DS Lớp tín chỉ --%>
-        <c:if test="${not empty dsltc}">
+        <%-- Chỉ hiển thị form tìm kiếm lớp và đăng ký khi đã chọn sinh viên (đối với PGV) hoặc SV đang đăng nhập --%>
+        <c:if test="${not empty svInfo}">
+            <%-- Tìm kiếm lớp TC --%>
             <div class="card card-custom mb-3">
-                <div class="card-header"><i class="fas fa-list"></i> Lớp tín chỉ đang mở - NK: ${nienkhoa} - HK: ${hocky}</div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-custom table-striped table-hover mb-0">
-                            <thead><tr>
-                                <th>Mã MH</th><th>Tên Môn học</th><th>Nhóm</th>
-                                <th>Giảng viên</th><th>SV đã ĐK</th><th>Thao tác</th>
-                            </tr></thead>
-                            <tbody>
-                                <c:forEach items="${dsltc}" var="l">
-                                    <c:set var="dadk" value="false"/>
-                                    <c:forEach items="${daDangKy}" var="dk">
-                                        <c:if test="${dk.MALTC == l.MALTC}"><c:set var="dadk" value="true"/></c:if>
-                                    </c:forEach>
-                                    <tr>
-                                        <td>${l.MAMH}</td>
-                                        <td>${l.TENMH}</td>
-                                        <td>${l.NHOM}</td>
-                                        <td>${l.HOTENGV}</td>
-                                        <td>${l.SOSVDK}</td>
-                                        <td>
-                                            <c:choose>
-                                                <c:when test="${dadk == 'true'}">
-                                                    <span class="badge bg-success">Đã ĐK</span>
-                                                </c:when>
-                                                <c:otherwise>
-                                                    <form action="${pageContext.request.contextPath}/dangky/register"
-                                                          method="post" style="display:inline;">
-                                                        <input type="hidden" name="maltc" value="${l.MALTC}">
-                                                        <button type="submit" class="btn btn-sm btn-primary">
-                                                            <i class="fas fa-plus"></i> Đăng ký
-                                                        </button>
-                                                    </form>
-                                                </c:otherwise>
-                                            </c:choose>
-                                        </td>
-                                    </tr>
-                                </c:forEach>
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="card-header"><i class="fas fa-search"></i> Tìm lớp tín chỉ</div>
+                <div class="card-body">
+                    <form action="${pageContext.request.contextPath}/dangky/search" method="post">
+                        <input type="hidden" name="masv" value="${masv}">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label">Niên khóa</label>
+                                <input type="text" name="nienkhoa" class="form-control"
+                                       placeholder="2021-2022" value="${nienkhoa}" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Học kỳ</label>
+                                <select name="hocky" class="form-select" required>
+                                    <option value="1" ${hocky == 1 ? 'selected' : ''}>1</option>
+                                    <option value="2" ${hocky == 2 ? 'selected' : ''}>2</option>
+                                    <option value="3" ${hocky == 3 ? 'selected' : ''}>3</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Tìm
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
-        </c:if>
 
-        <%-- DS đã đăng ký --%>
-        <c:if test="${not empty daDangKy && empty dsltc}">
-            <div class="card card-custom">
-                <div class="card-header"><i class="fas fa-check-circle"></i> Các lớp đã đăng ký</div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-custom table-striped mb-0">
-                            <thead><tr>
-                                <th>STT</th><th>Mã MH</th><th>Tên Môn học</th>
-                                <th>Nhóm</th><th>NK</th><th>HK</th><th>GV</th><th>Thao tác</th>
-                            </tr></thead>
-                            <tbody>
-                                <c:forEach items="${daDangKy}" var="dk" varStatus="st">
-                                    <tr>
-                                        <td>${st.index+1}</td>
-                                        <td>${dk.MAMH}</td><td>${dk.TENMH}</td>
-                                        <td>${dk.NHOM}</td><td>${dk.NIENKHOA}</td><td>${dk.HOCKY}</td>
-                                        <td>${dk.HOTENGV}</td>
-                                        <td>
-                                            <form action="${pageContext.request.contextPath}/dangky/cancel"
-                                                  method="post" style="display:inline;"
-                                                  onsubmit="return confirm('Hủy đăng ký môn này?');">
-                                                <input type="hidden" name="maltc" value="${dk.MALTC}">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                    <i class="fas fa-times"></i> Hủy
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                </c:forEach>
-                            </tbody>
-                        </table>
+            <%-- DS Lớp tín chỉ --%>
+            <c:if test="${not empty dsltc}">
+                <div class="card card-custom mb-3">
+                    <div class="card-header"><i class="fas fa-list"></i> Lớp tín chỉ đang mở - NK: ${nienkhoa} - HK: ${hocky}</div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-custom table-striped table-hover mb-0">
+                                <thead><tr>
+                                    <th>Mã MH</th><th>Tên Môn học</th><th>Nhóm</th>
+                                    <th>Giảng viên</th><th>SV đã ĐK</th><th>Thao tác</th>
+                                </tr></thead>
+                                <tbody>
+                                    <c:forEach items="${dsltc}" var="l">
+                                        <c:set var="dadk" value="false"/>
+                                        <c:forEach items="${daDangKy}" var="dk">
+                                            <c:if test="${dk.MALTC == l.MALTC}"><c:set var="dadk" value="true"/></c:if>
+                                        </c:forEach>
+                                        <tr>
+                                            <td>${l.MAMH}</td>
+                                            <td>${l.TENMH}</td>
+                                            <td>${l.NHOM}</td>
+                                            <td>${l.HOTENGV}</td>
+                                            <td>${l.SOSVDK}</td>
+                                            <td>
+                                                <c:choose>
+                                                    <c:when test="${dadk == 'true'}">
+                                                        <span class="badge bg-success">Đã ĐK</span>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <form action="${pageContext.request.contextPath}/dangky/register"
+                                                              method="post" style="display:inline;">
+                                                            <input type="hidden" name="maltc" value="${l.MALTC}">
+                                                            <input type="hidden" name="masv" value="${masv}">
+                                                            <button type="submit" class="btn btn-sm btn-primary">
+                                                                <i class="fas fa-plus"></i> Đăng ký
+                                                            </button>
+                                                        </form>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </c:if>
+
+            <%-- DS đã đăng ký --%>
+            <c:if test="${not empty daDangKy}">
+                <div class="card card-custom">
+                    <div class="card-header"><i class="fas fa-check-circle"></i> Các lớp đã đăng ký</div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-custom table-striped mb-0">
+                                <thead><tr>
+                                    <th>STT</th><th>Mã MH</th><th>Tên Môn học</th>
+                                    <th>Nhóm</th><th>NK</th><th>HK</th><th>GV</th><th>Thao tác</th>
+                                </tr></thead>
+                                <tbody>
+                                    <c:forEach items="${daDangKy}" var="dk" varStatus="st">
+                                        <tr>
+                                            <td>${st.index+1}</td>
+                                            <td>${dk.MAMH}</td><td>${dk.TENMH}</td>
+                                            <td>${dk.NHOM}</td><td>${dk.NIENKHOA}</td><td>${dk.HOCKY}</td>
+                                            <td>${dk.HOTENGV}</td>
+                                            <td>
+                                                <form action="${pageContext.request.contextPath}/dangky/cancel"
+                                                      method="post" style="display:inline;"
+                                                      onsubmit="return confirm('Hủy đăng ký môn này?');">
+                                                    <input type="hidden" name="maltc" value="${dk.MALTC}">
+                                                    <input type="hidden" name="masv" value="${masv}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                        <i class="fas fa-times"></i> Hủy
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </c:if>
         </c:if>
     </main>
 </div>

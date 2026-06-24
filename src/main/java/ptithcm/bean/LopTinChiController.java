@@ -60,14 +60,25 @@ public class LopTinChiController {
         
         // Kiểm tra niên khóa (không nhập quá khứ)
         try {
+            String nk = nienkhoa.trim();
+            if (!nk.matches("^\\d{4}-\\d{4}$")) {
+                ra.addFlashAttribute("error", "Niên khóa phải có định dạng YYYY-YYYY (ví dụ: 2026-2027).");
+                return "redirect:/loptinchi";
+            }
+            String[] years = nk.split("-");
+            int startYear = Integer.parseInt(years[0]);
+            int endYear = Integer.parseInt(years[1]);
+            if (endYear != startYear + 1) {
+                ra.addFlashAttribute("error", "Niên khóa không hợp lệ: năm sau phải bằng năm trước + 1.");
+                return "redirect:/loptinchi";
+            }
             int currentYear = java.time.Year.now().getValue();
-            int startYear = Integer.parseInt(nienkhoa.split("-")[0].trim());
-            if (startYear < currentYear - 1) { // Cho phép trễ tối đa 1 năm (ví dụ đang 2024 có thể nhập 2023-2024)
-                ra.addFlashAttribute("error", "Không được nhập lớp tín chỉ cho niên khóa đã qua (" + nienkhoa + ")");
+            if (startYear < currentYear) {
+                ra.addFlashAttribute("error", "Không được mở/sửa lớp tín chỉ cho niên khóa đã qua (trước năm " + currentYear + ").");
                 return "redirect:/loptinchi";
             }
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Định dạng niên khóa không hợp lệ (VD: 2021-2022)");
+            ra.addFlashAttribute("error", "Định dạng niên khóa không hợp lệ.");
             return "redirect:/loptinchi";
         }
 

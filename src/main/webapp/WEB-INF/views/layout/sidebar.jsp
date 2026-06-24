@@ -20,6 +20,8 @@
 
             <c:if test="${sessionScope.nhomQuyen == 'PGV' || sessionScope.nhomQuyen == 'KHOA'}">
                 <li class="nav-header">Dữ liệu cơ bản</li>
+                <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/khoa">
+                    <span class="nav-icon"><i class="fas fa-building-columns" aria-hidden="true"></i></span><span>Khoa</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/lop">
                     <span class="nav-icon"><i class="fas fa-layer-group" aria-hidden="true"></i></span><span>Lớp</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/sinhvien">
@@ -34,6 +36,10 @@
                 <li class="nav-header">Nghiệp vụ</li>
                 <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/diem">
                     <span class="nav-icon"><i class="fas fa-pen-to-square" aria-hidden="true"></i></span><span>Nhập điểm</span></a></li>
+                <c:if test="${sessionScope.nhomQuyen == 'PGV'}">
+                    <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/dangky">
+                        <span class="nav-icon"><i class="fas fa-clipboard-list" aria-hidden="true"></i></span><span>Đăng ký hộ LTC</span></a></li>
+                </c:if>
 
                 <li class="nav-header">Báo cáo</li>
                 <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/baocao">

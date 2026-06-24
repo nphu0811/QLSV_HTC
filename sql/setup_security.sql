@@ -114,6 +114,13 @@ GRANT SELECT ON LOPTINCHI TO NHOM_SV;
 GRANT SELECT, INSERT, UPDATE ON DANGKY TO NHOM_SV;
 GO
 
+-- Cấp quyền thực thi các stored procedure xác thực đăng nhập cho NHOM_SV (user sv)
+-- giúp ứng dụng kết nối bằng login 'sv' để thực hiện đăng nhập mà không dùng sa.
+GRANT EXECUTE ON OBJECT::dbo.SP_LoginSinhVien TO NHOM_SV;
+GRANT EXECUTE ON OBJECT::dbo.SP_LoginTaiKhoan TO NHOM_SV;
+GRANT EXECUTE ON OBJECT::dbo.SP_LayKhoaTheoLop TO NHOM_SV;
+GO
+
 -- =============================================
 -- 6. CẬP NHẬT PASSWORD MẶC ĐỊNH CHO SINH VIÊN
 -- =============================================

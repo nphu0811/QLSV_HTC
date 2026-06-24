@@ -1088,6 +1088,141 @@ BEGIN
 END;
 GO
 
+-- =============================================
+-- SP THÊM KHOA
+-- =============================================
+CREATE OR ALTER PROCEDURE dbo.SP_ThemKhoa
+    @MAKHOA NCHAR(10),
+    @TENKHOA NVARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM dbo.KHOA WHERE MAKHOA = @MAKHOA)
+    BEGIN
+        THROW 50000, N'Mã khoa đã tồn tại.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.KHOA WHERE TENKHOA = @TENKHOA)
+    BEGIN
+        THROW 50000, N'Tên khoa đã tồn tại.', 1;
+    END;
+
+    INSERT INTO dbo.KHOA (MAKHOA, TENKHOA)
+    VALUES (@MAKHOA, @TENKHOA);
+END;
+GO
+
+-- =============================================
+-- SP CẬP NHẬT KHOA
+-- =============================================
+CREATE OR ALTER PROCEDURE dbo.SP_CapNhatKhoa
+    @TENKHOA NVARCHAR(50),
+    @MAKHOA NCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.KHOA WHERE MAKHOA = @MAKHOA)
+    BEGIN
+        THROW 50000, N'Khoa không tồn tại.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.KHOA WHERE TENKHOA = @TENKHOA AND MAKHOA <> @MAKHOA)
+    BEGIN
+        THROW 50000, N'Tên khoa đã được sử dụng cho khoa khác.', 1;
+    END;
+
+    UPDATE dbo.KHOA
+    SET TENKHOA = @TENKHOA
+    WHERE MAKHOA = @MAKHOA;
+END;
+GO
+
+-- =============================================
+-- SP XÓA KHOA (Có kiểm tra ràng buộc ngoại)
+-- =============================================
+CREATE OR ALTER PROCEDURE dbo.SP_XoaKhoa
+    @MAKHOA NCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.KHOA WHERE MAKHOA = @MAKHOA)
+    BEGIN
+        THROW 50000, N'Khoa không tồn tại.', 1;
+    END;
+
+    -- Kiểm tra bảng LOP
+    IF EXISTS (SELECT 1 FROM dbo.LOP WHERE MAKHOA = @MAKHOA)
+    BEGIN
+        THROW 50000, N'Khoa đã có lớp học, không thể xóa.', 1;
+    END;
+
+    -- Kiểm tra bảng GIANGVIEN
+    IF EXISTS (SELECT 1 FROM dbo.GIANGVIEN WHERE MAKHOA = @MAKHOA)
+    BEGIN
+        THROW 50000, N'Khoa đã có giảng viên, không thể xóa.', 1;
+    END;
+
+    -- Kiểm tra bảng LOPTINCHI
+    IF EXISTS (SELECT 1 FROM dbo.LOPTINCHI WHERE MAKHOA = @MAKHOA)
+    BEGIN
+        THROW 50000, N'Khoa đã có lớp tín chỉ, không thể xóa.', 1;
+    END;
+
+    DELETE FROM dbo.KHOA
+    WHERE MAKHOA = @MAKHOA;
+END;
+GO
+
+-- =============================================
+-- SP LẤY KHOA THEO GIẢNG VIÊN
+-- =============================================
+CREATE OR ALTER PROCEDURE dbo.SP_LayKhoaTheoGiangVien
+    @MAGV NCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT MAKHOA
+    FROM dbo.GIANGVIEN
+    WHERE MAGV = @MAGV;
+END;
+GO
+
+-- =============================================
+-- SP LẤY KHOA THEO SINH VIÊN
+-- =============================================
+CREATE OR ALTER PROCEDURE dbo.SP_LayKhoaTheoStudent
+    @MASV NCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT L.MAKHOA
+    FROM dbo.SINHVIEN AS SV
+    JOIN dbo.LOP AS L ON SV.MALOP = L.MALOP
+    WHERE SV.MASV = @MASV;
+END;
+GO
+
+-- =============================================
+-- SP LẤY DANH SÁCH GIẢNG VIÊN CÓ KHOA THỰC TẾ
+-- =============================================
+CREATE OR ALTER PROCEDURE dbo.SP_DanhSachTaiKhoanGiangVienCoKhoa
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT G.MAGV, G.HO + N' ' + G.TEN AS HOTEN,
+           T.Login, T.MatKhau, T.NhomQuyen, G.MAKHOA
+    FROM dbo.GIANGVIEN AS G
+    LEFT JOIN dbo.TaiKhoan AS T ON G.MAGV = T.MAGV
+    ORDER BY G.TEN, G.HO;
+END;
+GO
+
 IF DATABASE_PRINCIPAL_ID(N'PGV') IS NOT NULL
     GRANT EXECUTE ON SCHEMA::dbo TO PGV;
 GO
@@ -1120,6 +1255,9 @@ BEGIN
     GRANT EXECUTE ON OBJECT::dbo.SP_BaoCaoMonHocTheoLop TO KHOA;
     GRANT EXECUTE ON OBJECT::dbo.SP_BaoCaoSinhVienTheoLop TO KHOA;
     GRANT EXECUTE ON OBJECT::dbo.SP_BaoCaoDiemTongKet TO KHOA;
+    GRANT EXECUTE ON OBJECT::dbo.SP_LayKhoaTheoGiangVien TO KHOA;
+    GRANT EXECUTE ON OBJECT::dbo.SP_LayKhoaTheoStudent TO KHOA;
+    GRANT EXECUTE ON OBJECT::dbo.SP_DanhSachTaiKhoanGiangVienCoKhoa TO KHOA;
 END;
 GO
 
@@ -1134,6 +1272,7 @@ BEGIN
     GRANT EXECUTE ON OBJECT::dbo.SP_HuyDangKyLopTinChi TO NHOM_SV;
     GRANT EXECUTE ON OBJECT::dbo.SP_BaoCaoPhieuDiemSinhVienInfo TO NHOM_SV;
     GRANT EXECUTE ON OBJECT::dbo.SP_BaoCaoPhieuDiem TO NHOM_SV;
+    GRANT EXECUTE ON OBJECT::dbo.SP_LayKhoaTheoStudent TO NHOM_SV;
 END;
 GO
 

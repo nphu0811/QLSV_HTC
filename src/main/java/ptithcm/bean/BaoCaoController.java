@@ -20,7 +20,11 @@ public class BaoCaoController {
     private ConnectionHelper connHelper;
 
     @RequestMapping(method = RequestMethod.GET)
-    public String show() {
+    public String show(HttpSession session) {
+        String nhomQuyen = (String) session.getAttribute("nhomQuyen");
+        if (!"PGV".equals(nhomQuyen) && !"KHOA".equals(nhomQuyen) && !"SV".equals(nhomQuyen)) {
+            return "redirect:/login";
+        }
         return "baocao";
     }
 
@@ -32,17 +36,34 @@ public class BaoCaoController {
     @RequestMapping(value = "/ds-ltc", method = RequestMethod.POST)
     public String reportDSLTC(@RequestParam String nienkhoa,
                               @RequestParam int hocky,
+                              @RequestParam(required = false) String maKhoa,
                               HttpSession session,
                               ModelMap model) {
-        JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
         String nhomQuyen = (String) session.getAttribute("nhomQuyen");
-        String maKhoa = (String) session.getAttribute("maKhoa");
-        Object khoaFilter = "PGV".equals(nhomQuyen) ? null : maKhoa;
+        if ("SV".equals(nhomQuyen)) {
+            return "redirect:/home";
+        }
+        JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
+        String userKhoa = (String) session.getAttribute("maKhoa");
+        
+        String selectedKhoa = null;
+        if ("PGV".equals(nhomQuyen)) {
+            selectedKhoa = (maKhoa != null && !maKhoa.trim().isEmpty()) ? maKhoa.trim() : null;
+        } else { // KHOA
+            selectedKhoa = userKhoa;
+        }
 
         List<Map<String, Object>> data = StoredProcedure.query(jdbc,
-                "SP_BaoCaoDSLopTinChi", nienkhoa.trim(), hocky, khoaFilter);
+                "SP_BaoCaoDSLopTinChi", nienkhoa.trim(), hocky, selectedKhoa);
 
-        model.addAttribute("tenKhoa", "PGV".equals(nhomQuyen) ? "TOÀN TRƯỜNG" : getTenKhoa(jdbc, maKhoa));
+        String tenKhoaDisplay = "";
+        if (selectedKhoa == null) {
+            tenKhoaDisplay = "TOÀN TRƯỜNG";
+        } else {
+            tenKhoaDisplay = getTenKhoa(jdbc, selectedKhoa).toUpperCase();
+        }
+
+        model.addAttribute("tenKhoa", tenKhoaDisplay);
         model.addAttribute("reportType", "DS_LTC");
         model.addAttribute("data", data);
         model.addAttribute("nienkhoa", nienkhoa.trim());
@@ -57,17 +78,22 @@ public class BaoCaoController {
                                @RequestParam int nhom,
                                HttpSession session,
                                ModelMap model) {
-        JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
         String nhomQuyen = (String) session.getAttribute("nhomQuyen");
-        String maKhoa = (String) session.getAttribute("maKhoa");
-        Object khoaFilter = "PGV".equals(nhomQuyen) ? null : maKhoa;
+        if ("SV".equals(nhomQuyen)) {
+            return "redirect:/home";
+        }
+        JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
+        String userKhoa = (String) session.getAttribute("maKhoa");
+        String khoaFilter = "PGV".equals(nhomQuyen) ? null : userKhoa;
 
         List<Map<String, Object>> ltcRows = StoredProcedure.query(jdbc,
                 "SP_TimLopTinChi", nienkhoa.trim(), hocky, mamh.trim(), nhom, khoaFilter);
-        model.addAttribute("tenKhoa", "PGV".equals(nhomQuyen) ? "TOÀN TRƯỜNG" : getTenKhoa(jdbc, maKhoa));
+        
+        String tenKhoaDisplay = "PGV".equals(nhomQuyen) ? "TOÀN TRƯỜNG" : getTenKhoa(jdbc, userKhoa).toUpperCase();
+        model.addAttribute("tenKhoa", tenKhoaDisplay);
 
         if (ltcRows.isEmpty()) {
-            model.addAttribute("error", "Không tìm thấy lớp tín chỉ này!");
+            model.addAttribute("error", "Không tìm thấy lớp tín chỉ hợp lệ hoặc bạn không có quyền xem lớp này!");
             return "baocao_report";
         }
         int maltc = ((Number) ltcRows.get(0).get("MALTC")).intValue();
@@ -91,17 +117,22 @@ public class BaoCaoController {
                                  @RequestParam int nhom,
                                  HttpSession session,
                                  ModelMap model) {
-        JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
         String nhomQuyen = (String) session.getAttribute("nhomQuyen");
-        String maKhoa = (String) session.getAttribute("maKhoa");
-        Object khoaFilter = "PGV".equals(nhomQuyen) ? null : maKhoa;
+        if ("SV".equals(nhomQuyen)) {
+            return "redirect:/home";
+        }
+        JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
+        String userKhoa = (String) session.getAttribute("maKhoa");
+        String khoaFilter = "PGV".equals(nhomQuyen) ? null : userKhoa;
 
         List<Map<String, Object>> ltcRows = StoredProcedure.query(jdbc,
                 "SP_TimLopTinChi", nienkhoa.trim(), hocky, mamh.trim(), nhom, khoaFilter);
-        model.addAttribute("tenKhoa", "PGV".equals(nhomQuyen) ? "TOÀN TRƯỜNG" : getTenKhoa(jdbc, maKhoa));
+        
+        String tenKhoaDisplay = "PGV".equals(nhomQuyen) ? "TOÀN TRƯỜNG" : getTenKhoa(jdbc, userKhoa).toUpperCase();
+        model.addAttribute("tenKhoa", tenKhoaDisplay);
 
         if (ltcRows.isEmpty()) {
-            model.addAttribute("error", "Không tìm thấy lớp tín chỉ này!");
+            model.addAttribute("error", "Không tìm thấy lớp tín chỉ hợp lệ hoặc bạn không có quyền xem bảng điểm lớp này!");
             return "baocao_report";
         }
         int maltc = ((Number) ltcRows.get(0).get("MALTC")).intValue();
@@ -124,14 +155,29 @@ public class BaoCaoController {
                                    ModelMap model) {
         JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
         String nhomQuyen = (String) session.getAttribute("nhomQuyen");
+        String finalMasv = null;
         if ("SV".equals(nhomQuyen)) {
-            masv = (String) session.getAttribute("masv");
+            finalMasv = (String) session.getAttribute("masv");
+        } else {
+            finalMasv = masv.trim();
+            if ("KHOA".equals(nhomQuyen)) {
+                // Kiểm tra xem sinh viên có thuộc khoa của user không
+                try {
+                    String maKhoaSv = StoredProcedure.object(jdbc, "SP_LayKhoaTheoStudent", String.class, finalMasv).trim();
+                    String maKhoaUser = (String) session.getAttribute("maKhoa");
+                    if (!maKhoaUser.equals(maKhoaSv)) {
+                        return "redirect:/home"; // Chặn KHOA xem phiếu điểm khoa khác
+                    }
+                } catch (Exception e) {
+                    return "redirect:/home";
+                }
+            }
         }
 
         List<Map<String, Object>> svInfo = StoredProcedure.query(jdbc,
-                "SP_BaoCaoPhieuDiemSinhVienInfo", masv.trim());
+                "SP_BaoCaoPhieuDiemSinhVienInfo", finalMasv);
         List<Map<String, Object>> data = StoredProcedure.query(jdbc,
-                "SP_BaoCaoPhieuDiem", masv.trim());
+                "SP_BaoCaoPhieuDiem", finalMasv);
 
         model.addAttribute("reportType", "PHIEU_DIEM");
         model.addAttribute("data", data);
@@ -143,7 +189,23 @@ public class BaoCaoController {
     public String reportBangDiemTK(@RequestParam String malop,
                                     HttpSession session,
                                     ModelMap model) {
+        String nhomQuyen = (String) session.getAttribute("nhomQuyen");
+        if ("SV".equals(nhomQuyen)) {
+            return "redirect:/home";
+        }
         JdbcTemplate jdbc = connHelper.getJdbcTemplate(session);
+        if ("KHOA".equals(nhomQuyen)) {
+            // Kiểm tra xem lớp có thuộc khoa của user không
+            try {
+                String maKhoaLop = StoredProcedure.object(jdbc, "SP_LayKhoaTheoLop", String.class, malop.trim()).trim();
+                String maKhoaUser = (String) session.getAttribute("maKhoa");
+                if (!maKhoaUser.equals(maKhoaLop)) {
+                    return "redirect:/home"; // Chặn KHOA xem bảng điểm TK lớp khoa khác
+                }
+            } catch (Exception e) {
+                return "redirect:/home";
+            }
+        }
 
         List<Map<String, Object>> lopInfo = StoredProcedure.query(jdbc,
                 "SP_BaoCaoLopInfo", malop.trim());

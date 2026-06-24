@@ -28,90 +28,99 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
         </c:if>
 
-        <div class="card card-custom mb-3">
-            <div class="card-header"><i class="fas fa-edit"></i> Thông tin Lớp tín chỉ</div>
-            <div class="card-body">
-                <form id="ltcForm" action="${pageContext.request.contextPath}/loptinchi/save" method="post">
-                    <input type="hidden" id="ltcAction" name="action" value="add">
-                    <input type="hidden" id="ltcMaltc" name="maltc" value="">
-                    <div class="row g-3">
-                        <div class="col-md-2">
-                            <label class="form-label">Niên khóa</label>
-                            <input type="text" name="nienkhoa" data-field="NIENKHOA"
-                                   class="form-control" placeholder="2021-2022" maxlength="9" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Học kỳ</label>
-                            <select name="hocky" data-field="HOCKY" class="form-select" required>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Môn học</label>
-                            <select name="mamh" data-field="MAMH" class="form-select" required>
-                                <c:forEach items="${dsmh}" var="mh">
-                                    <option value="${mh.MAMH}">${mh.TENMH}</option>
-                                </c:forEach>
-                            </select>
-                        </div>
-                        <div class="col-md-1">
-                            <label class="form-label">Nhóm</label>
-                            <input type="number" name="nhom" data-field="NHOM"
-                                   class="form-control" min="1" value="1" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Giảng viên</label>
-                            <select name="magv" data-field="MAGV" class="form-select" required>
-                                <c:forEach items="${dsgv}" var="gv">
-                                    <option value="${gv.MAGV}">${gv.HOTENGV}</option>
-                                </c:forEach>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">SV tối thiểu</label>
-                            <input type="number" name="sosvtoithieu" data-field="SOSVTOITHIEU"
-                                   class="form-control" min="1" value="10" required>
-                        </div>
-                        <c:choose>
-                            <c:when test="${sessionScope.nhomQuyen == 'PGV'}">
+        <c:choose>
+            <c:when test="${sessionScope.nhomQuyen == 'PGV'}">
+                <div class="card card-custom mb-3">
+                    <div class="card-header"><i class="fas fa-edit"></i> Thông tin Lớp tín chỉ</div>
+                    <div class="card-body">
+                        <form id="ltcForm" action="${pageContext.request.contextPath}/loptinchi/save" method="post">
+                            <input type="hidden" id="ltcAction" name="action" value="add">
+                            <input type="hidden" id="ltcMaltc" name="maltc" value="">
+                            <div class="row g-3">
+                                <div class="col-md-2">
+                                    <label class="form-label">Niên khóa</label>
+                                    <input type="text" name="nienkhoa" data-field="NIENKHOA"
+                                           class="form-control" placeholder="2021-2022" maxlength="9" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Học kỳ</label>
+                                    <select name="hocky" data-field="HOCKY" class="form-select" required>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                    </select>
+                                </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">Khoa</label>
-                                    <select name="maKhoa" data-field="MAKHOA" class="form-select" required>
-                                        <c:forEach items="${khoaList}" var="k">
-                                            <option value="${k.MAKHOA}">${k.TENKHOA}</option>
+                                    <label class="form-label">Môn học</label>
+                                    <select name="mamh" data-field="MAMH" class="form-select" required>
+                                        <c:forEach items="${dsmh}" var="mh">
+                                            <option value="${mh.MAMH}">${mh.TENMH}</option>
                                         </c:forEach>
                                     </select>
                                 </div>
-                            </c:when>
-                            <c:otherwise>
-                                <input type="hidden" name="maKhoa" data-field="MAKHOA" value="${sessionScope.maKhoa}">
-                            </c:otherwise>
-                        </c:choose>
+                                <div class="col-md-1">
+                                    <label class="form-label">Nhóm</label>
+                                    <input type="number" name="nhom" data-field="NHOM"
+                                           class="form-control" min="1" value="1" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Giảng viên</label>
+                                    <select name="magv" data-field="MAGV" class="form-select" required>
+                                        <c:forEach items="${dsgv}" var="gv">
+                                            <option value="${gv.MAGV}">${gv.HOTENGV}</option>
+                                        </c:forEach>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">SV tối thiểu</label>
+                                    <input type="number" name="sosvtoithieu" data-field="SOSVTOITHIEU"
+                                           class="form-control" min="1" value="10" required>
+                                </div>
+                                <c:choose>
+                                    <c:when test="${sessionScope.nhomQuyen == 'PGV'}">
+                                        <div class="col-md-3">
+                                            <label class="form-label">Khoa</label>
+                                            <select name="maKhoa" data-field="MAKHOA" class="form-select" required>
+                                                <c:forEach items="${khoaList}" var="k">
+                                                    <option value="${k.MAKHOA}">${k.TENKHOA}</option>
+                                                </c:forEach>
+                                            </select>
+                                        </div>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <input type="hidden" name="maKhoa" data-field="MAKHOA" value="${sessionScope.maKhoa}">
+                                    </c:otherwise>
+                                </c:choose>
+                            </div>
+                            <div class="toolbar mt-3">
+                                <button type="button" class="btn btn-primary btn-action" onclick="btnThemLTC()">
+                                    <i class="fas fa-plus"></i> Thêm</button>
+                                <button type="button" class="btn btn-danger btn-action"
+                                        onclick="btnXoaLTC('${pageContext.request.contextPath}/loptinchi/delete')">
+                                    <i class="fas fa-trash"></i> Xóa</button>
+                                <button type="submit" class="btn btn-success btn-action">
+                                    <i class="fas fa-save"></i> Ghi</button>
+                                <button type="button" class="btn btn-warning btn-action" onclick="btnPhucHoi()">
+                                    <i class="fas fa-undo"></i> Phục hồi</button>
+                                <button type="button" class="btn btn-secondary btn-action"
+                                        onclick="btnThoat('${pageContext.request.contextPath}/home')">
+                                    <i class="fas fa-sign-out-alt"></i> Thoát</button>
+                            </div>
+                        </form>
+                        <form id="deleteFormLTC" action="${pageContext.request.contextPath}/loptinchi/delete" method="post" style="display:none;">
+                            <input type="hidden" id="deleteMaltc" name="maltc" value="">
+                        </form>
                     </div>
-                    <div class="toolbar mt-3">
-                        <c:if test="${sessionScope.nhomQuyen == 'PGV'}">
-                            <button type="button" class="btn btn-primary btn-action" onclick="btnThemLTC()">
-                                <i class="fas fa-plus"></i> Thêm</button>
-                            <button type="button" class="btn btn-danger btn-action"
-                                    onclick="btnXoaLTC('${pageContext.request.contextPath}/loptinchi/delete')">
-                                <i class="fas fa-trash"></i> Xóa</button>
-                            <button type="submit" class="btn btn-success btn-action">
-                                <i class="fas fa-save"></i> Ghi</button>
-                            <button type="button" class="btn btn-warning btn-action" onclick="btnPhucHoi()">
-                                <i class="fas fa-undo"></i> Phục hồi</button>
-                        </c:if>
-                        <button type="button" class="btn btn-secondary btn-action"
-                                onclick="btnThoat('${pageContext.request.contextPath}/home')">
-                            <i class="fas fa-sign-out-alt"></i> Thoát</button>
-                    </div>
-                </form>
-                <form id="deleteFormLTC" action="${pageContext.request.contextPath}/loptinchi/delete" method="post" style="display:none;">
-                    <input type="hidden" id="deleteMaltc" name="maltc" value="">
-                </form>
-            </div>
-        </div>
+                </div>
+            </c:when>
+            <c:otherwise>
+                <div class="toolbar mb-3">
+                    <button type="button" class="btn btn-secondary btn-action"
+                            onclick="btnThoat('${pageContext.request.contextPath}/home')">
+                        <i class="fas fa-sign-out-alt"></i> Thoát</button>
+                </div>
+            </c:otherwise>
+        </c:choose>
 
         <div class="card card-custom">
             <div class="card-header"><i class="fas fa-list"></i> Danh sách Lớp tín chỉ</div>

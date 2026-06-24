@@ -28,70 +28,79 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
         </c:if>
 
-        <div class="card card-custom mb-3">
-            <div class="card-header"><i class="fas fa-edit"></i> Thông tin Giảng viên</div>
-            <div class="card-body">
-                <form id="gvForm" action="${pageContext.request.contextPath}/giangvien/save" method="post">
-                    <input type="hidden" id="gvAction" name="action" value="add">
-                    <div class="row g-3">
-                        <div class="col-md-2">
-                            <label class="form-label">Mã GV</label>
-                            <input type="text" id="gvPK" name="magv" data-field="MAGV"
-                                   class="form-control" maxlength="10" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Họ</label>
-                            <input type="text" name="ho" data-field="HO"
-                                   class="form-control" maxlength="50" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Tên</label>
-                            <input type="text" name="ten" data-field="TEN"
-                                   class="form-control" maxlength="10" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Học vị</label>
-                            <input type="text" name="hocvi" data-field="HOCVI"
-                                   class="form-control" maxlength="20">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Chuyên môn</label>
-                            <input type="text" name="chuyenmon" data-field="CHUYENMON"
-                                   class="form-control" maxlength="50">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Học hàm</label>
-                            <input type="text" name="hocham" data-field="HOCHAM"
-                                   class="form-control" maxlength="20">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Khoa</label>
-                            <select name="maKhoa" data-field="MAKHOA" class="form-select" required>
-                                <c:forEach items="${khoaList}" var="k">
-                                    <option value="${k.MAKHOA}">${k.TENKHOA}</option>
-                                </c:forEach>
-                            </select>
-                        </div>
+        <c:choose>
+            <c:when test="${sessionScope.nhomQuyen == 'PGV'}">
+                <div class="card card-custom mb-3">
+                    <div class="card-header"><i class="fas fa-edit"></i> Thông tin Giảng viên</div>
+                    <div class="card-body">
+                        <form id="gvForm" action="${pageContext.request.contextPath}/giangvien/save" method="post">
+                            <input type="hidden" id="gvAction" name="action" value="add">
+                            <div class="row g-3">
+                                <div class="col-md-2">
+                                    <label class="form-label">Mã GV</label>
+                                    <input type="text" id="gvPK" name="magv" data-field="MAGV"
+                                           class="form-control" maxlength="10" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Họ</label>
+                                    <input type="text" name="ho" data-field="HO"
+                                           class="form-control" maxlength="50" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Tên</label>
+                                    <input type="text" name="ten" data-field="TEN"
+                                           class="form-control" maxlength="10" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Học vị</label>
+                                    <input type="text" name="hocvi" data-field="HOCVI"
+                                           class="form-control" maxlength="20">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Chuyên môn</label>
+                                    <input type="text" name="chuyenmon" data-field="CHUYENMON"
+                                           class="form-control" maxlength="50">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Học hàm</label>
+                                    <input type="text" name="hocham" data-field="HOCHAM"
+                                           class="form-control" maxlength="20">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Khoa</label>
+                                    <select name="maKhoa" data-field="MAKHOA" class="form-select" required>
+                                        <c:forEach items="${khoaList}" var="k">
+                                            <option value="${k.MAKHOA}">${k.TENKHOA}</option>
+                                        </c:forEach>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="toolbar mt-3">
+                                <button type="button" class="btn btn-primary btn-action" onclick="btnThem('gv')">
+                                    <i class="fas fa-plus"></i> Thêm</button>
+                                <button type="button" class="btn btn-danger btn-action"
+                                        onclick="btnXoa('gv','${pageContext.request.contextPath}/giangvien/delete')">
+                                    <i class="fas fa-trash"></i> Xóa</button>
+                                <button type="submit" class="btn btn-success btn-action">
+                                    <i class="fas fa-save"></i> Ghi</button>
+                                <button type="button" class="btn btn-warning btn-action" onclick="btnPhucHoi()">
+                                    <i class="fas fa-undo"></i> Phục hồi</button>
+                                <button type="button" class="btn btn-secondary btn-action"
+                                        onclick="btnThoat('${pageContext.request.contextPath}/home')">
+                                    <i class="fas fa-sign-out-alt"></i> Thoát</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="toolbar mt-3">
-                        <c:if test="${sessionScope.nhomQuyen == 'PGV'}">
-                            <button type="button" class="btn btn-primary btn-action" onclick="btnThem('gv')">
-                                <i class="fas fa-plus"></i> Thêm</button>
-                            <button type="button" class="btn btn-danger btn-action"
-                                    onclick="btnXoa('gv','${pageContext.request.contextPath}/giangvien/delete')">
-                                <i class="fas fa-trash"></i> Xóa</button>
-                            <button type="submit" class="btn btn-success btn-action">
-                                <i class="fas fa-save"></i> Ghi</button>
-                            <button type="button" class="btn btn-warning btn-action" onclick="btnPhucHoi()">
-                                <i class="fas fa-undo"></i> Phục hồi</button>
-                        </c:if>
-                        <button type="button" class="btn btn-secondary btn-action"
-                                onclick="btnThoat('${pageContext.request.contextPath}/home')">
-                            <i class="fas fa-sign-out-alt"></i> Thoát</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                </div>
+            </c:when>
+            <c:otherwise>
+                <div class="toolbar mb-3">
+                    <button type="button" class="btn btn-secondary btn-action"
+                            onclick="btnThoat('${pageContext.request.contextPath}/home')">
+                        <i class="fas fa-sign-out-alt"></i> Thoát</button>
+                </div>
+            </c:otherwise>
+        </c:choose>
 
         <div class="card card-custom">
             <div class="card-header"><i class="fas fa-list"></i> Danh sách Giảng viên</div>

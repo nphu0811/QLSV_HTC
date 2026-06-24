@@ -1,4 +1,4 @@
-﻿<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -36,6 +36,17 @@
                                         <label class="form-label">Học kỳ</label>
                                         <select name="hocky" class="form-select"><option>1</option><option>2</option><option>3</option></select>
                                     </div>
+                                    <c:if test="${sessionScope.nhomQuyen == 'PGV'}">
+                                        <div class="col-12 mt-2">
+                                            <label class="form-label">Khoa</label>
+                                            <select name="maKhoa" class="form-select">
+                                                <option value="">-- TOÀN TRƯỜNG --</option>
+                                                <c:forEach items="${sessionScope.khoaList}" var="k">
+                                                    <option value="${k.MAKHOA}">${k.TENKHOA}</option>
+                                                </c:forEach>
+                                            </select>
+                                        </div>
+                                    </c:if>
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100 mt-3"><i class="fas fa-print"></i> In báo cáo</button>
                             </form>

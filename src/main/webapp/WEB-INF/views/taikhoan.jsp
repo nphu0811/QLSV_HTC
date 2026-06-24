@@ -1,4 +1,4 @@
-﻿<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -86,11 +86,15 @@
                     <div class="row mb-5 align-items-center" id="divKhoa" style="display:none;">
                         <label class="col-sm-3 col-form-label text-end text-dark">Khoa</label>
                         <div class="col-sm-9">
-                            <select id="inputKhoa" name="maKhoa" class="form-select" style="border: 1px solid #999;">
+                            <select id="inputKhoa" name="maKhoa" class="form-select" style="border: 1px solid #999;"
+                                    ${sessionScope.nhomQuyen == 'KHOA' ? 'disabled' : ''}>
                                 <c:forEach items="${khoaList}" var="k">
-                                    <option value="${k.MAKHOA}">${k.TENKHOA}</option>
+                                    <option value="${k.MAKHOA}" ${sessionScope.nhomQuyen == 'KHOA' && sessionScope.maKhoa == k.MAKHOA ? 'selected' : ''}>${k.TENKHOA}</option>
                                 </c:forEach>
                             </select>
+                            <c:if test="${sessionScope.nhomQuyen == 'KHOA'}">
+                                <input type="hidden" name="maKhoa" value="${sessionScope.maKhoa}">
+                            </c:if>
                         </div>
                     </div>
 
