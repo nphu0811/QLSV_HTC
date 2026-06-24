@@ -707,6 +707,63 @@ BEGIN
         THROW 50000, N'Thông tin đăng ký lớp tín chỉ không tồn tại.', 1;
     END;
 
+    -- Kiểm tra phân quyền khoa đối với SQL Login đang thực thi
+    DECLARE @UserLogin NVARCHAR(128) = LOWER(SUSER_SNAME());
+    DECLARE @LtcKhoa NCHAR(10);
+    SELECT @LtcKhoa = MAKHOA FROM dbo.LOPTINCHI WHERE MALTC = @MALTC;
+
+    IF IS_MEMBER('PGV') = 0 AND IS_SRVROLEMEMBER('sysadmin') = 0
+    BEGIN
+        IF IS_MEMBER('KHOA') = 1
+        BEGIN
+            -- 1. Tra cứu MAKHOA của Login trong bảng TaiKhoan
+            DECLARE @UserKhoa NCHAR(10) = NULL;
+            SELECT @UserKhoa = MAKHOA FROM dbo.TaiKhoan WHERE LOWER(Login) = @UserLogin;
+
+            -- 2. Nếu tìm thấy thông tin khoa của user trong bảng TaiKhoan
+            IF @UserKhoa IS NOT NULL
+            BEGIN
+                IF RTRIM(@UserKhoa) <> RTRIM(@LtcKhoa)
+                BEGIN
+                    DECLARE @MsgTaiKhoan NVARCHAR(200) = N'Tài khoản ' + SUSER_SNAME() + N' thuộc khoa ' + RTRIM(@UserKhoa) + N' không được phép sửa điểm của khoa ' + RTRIM(@LtcKhoa) + N'.';
+                    THROW 50000, @MsgTaiKhoan, 1;
+                END;
+            END
+            -- 3. Nếu không tìm thấy trong TaiKhoan, kiểm tra theo login hệ thống và mẫu tên login
+            ELSE
+            BEGIN
+                IF @UserLogin = 'khoa_cntt' AND @LtcKhoa <> 'CNTT'
+                BEGIN
+                    THROW 50000, N'Tài khoản khoa CNTT không được phép sửa điểm của khoa khác.', 1;
+                END;
+
+                IF @UserLogin = 'khoa_vt' AND @LtcKhoa <> 'VT'
+                BEGIN
+                    THROW 50000, N'Tài khoản khoa Viễn thông không được phép sửa điểm của khoa khác.', 1;
+                END;
+
+                IF @UserLogin = 'khoa_chung' AND @LtcKhoa IN ('CNTT', 'VT')
+                BEGIN
+                    THROW 50000, N'Tài khoản khoa chung không được phép sửa điểm của các khoa CNTT và VT.', 1;
+                END;
+
+                -- Fallback: kiểm tra xem tên login có chứa mã khoa hay không (ví dụ khoa_kt, gv_cntt)
+                IF @UserLogin NOT IN ('khoa_cntt', 'khoa_vt', 'khoa_chung')
+                BEGIN
+                    IF CHARINDEX(LOWER(RTRIM(@LtcKhoa)), @UserLogin) = 0
+                    BEGIN
+                        DECLARE @MsgFallback NVARCHAR(200) = N'Tài khoản khoa ' + SUSER_SNAME() + N' không được phép sửa điểm của khoa ' + RTRIM(@LtcKhoa) + N'.';
+                        THROW 50000, @MsgFallback, 1;
+                    END;
+                END;
+            END;
+        END
+        ELSE
+        BEGIN
+            THROW 50000, N'Tài khoản không có quyền cập nhật điểm.', 1;
+        END;
+    END;
+
     IF (@DIEM_CC IS NOT NULL AND (@DIEM_CC < 0 OR @DIEM_CC > 10))
        OR (@DIEM_GK IS NOT NULL AND (@DIEM_GK < 0.0 OR @DIEM_GK > 10.0))
        OR (@DIEM_CK IS NOT NULL AND (@DIEM_CK < 0.0 OR @DIEM_CK > 10.0))
