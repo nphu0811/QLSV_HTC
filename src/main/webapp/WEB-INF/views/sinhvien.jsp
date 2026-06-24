@@ -1,4 +1,4 @@
-﻿<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <!DOCTYPE html>
@@ -137,6 +137,7 @@
                                                 <td data-col="PHAI">${sv.PHAI == true ? 'Nữ' : 'Nam'}</td>
                                                 <td data-col="NGAYSINH">${sv.NGAYSINH}</td>
                                                 <td data-col="DIACHI">${sv.DIACHI}</td>
+                                                <td data-col="DANGHIHOC" style="display: none;">${sv.DANGHIHOC}</td>
                                             </tr>
                                         </c:forEach>
                                     </tbody>

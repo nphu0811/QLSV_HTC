@@ -20,7 +20,29 @@ function initTableSelection(tableId, formPrefix) {
                 var field = input.getAttribute('data-field');
                 var cell = row.querySelector('[data-col="' + field + '"]');
                 if (cell) {
-                    input.value = cell.textContent.trim();
+                    var valToSet = cell.textContent.trim();
+                    if (input.tagName === 'SELECT') {
+                        // Handle display values (like gender & status)
+                        if (valToSet === 'Nữ') valToSet = 'true';
+                        if (valToSet === 'Nam') valToSet = 'false';
+                        if (valToSet === 'Có') valToSet = 'true';
+                        if (valToSet === 'Không') valToSet = 'false';
+                        
+                        // Robust match for option value (ignores NCHAR trailing spaces)
+                        var matched = false;
+                        for (var i = 0; i < input.options.length; i++) {
+                            if (input.options[i].value.trim() === valToSet) {
+                                input.selectedIndex = i;
+                                matched = true;
+                                break;
+                            }
+                        }
+                        if (!matched) {
+                            input.value = valToSet;
+                        }
+                    } else {
+                        input.value = valToSet;
+                    }
                 }
             });
             // Set action to update
@@ -40,13 +62,37 @@ function initTableSelection(tableId, formPrefix) {
 
 // ===== CRUD BUTTON HANDLERS =====
 function btnThem(formPrefix) {
-    // Clear form for new entry
     var form = document.getElementById(formPrefix + 'Form');
-    if (form) {
-        var inputs = form.querySelectorAll('input[type="text"], input[type="number"], select');
-        inputs.forEach(function(inp) { inp.value = ''; inp.readOnly = false; });
-    }
     var actionField = document.getElementById(formPrefix + 'Action');
+    var isAdd = actionField && actionField.value === 'add';
+
+    if (isAdd && form) {
+        // Prevent loss of entered data
+        var isDirty = false;
+        var inputsToCheck = form.querySelectorAll('input[type="text"], input[type="number"], input[type="date"]');
+        inputsToCheck.forEach(function(inp) {
+            if (inp.value && inp.value.trim() !== '') {
+                isDirty = true;
+            }
+        });
+        if (isDirty) {
+            if (!confirm('Dữ liệu đang nhập chưa được lưu. Để lưu lại, vui lòng nhấn nút "Ghi". Bạn có chắc chắn muốn xóa hết dữ liệu để nhập mới?')) {
+                return;
+            }
+        }
+    }
+
+    // Clear form for new entry (including date fields)
+    if (form) {
+        var inputs = form.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], select');
+        inputs.forEach(function(inp) { 
+            inp.value = ''; 
+            inp.readOnly = false; 
+            if (inp.tagName === 'SELECT') {
+                inp.selectedIndex = 0; // Default to first option
+            }
+        });
+    }
     if (actionField) actionField.value = 'add';
     var pkField = document.getElementById(formPrefix + 'PK');
     if (pkField) { pkField.readOnly = false; pkField.focus(); }

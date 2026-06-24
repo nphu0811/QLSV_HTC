@@ -1,4 +1,4 @@
-﻿<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <!DOCTYPE html>
 <html lang="vi">
@@ -156,10 +156,46 @@ function selectLTC(row, maltc) {
     var fields = row.querySelectorAll('[data-col]');
     fields.forEach(function(f){
         var inp = document.querySelector('[data-field="'+f.getAttribute('data-col')+'"]');
-        if(inp) inp.value = f.textContent.trim();
+        if (inp) {
+            var valToSet = f.textContent.trim();
+            if (inp.tagName === 'SELECT') {
+                var matched = false;
+                for (var i = 0; i < inp.options.length; i++) {
+                    if (inp.options[i].value.trim() === valToSet) {
+                        inp.selectedIndex = i;
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched) {
+                    inp.value = valToSet;
+                }
+            } else {
+                inp.value = valToSet;
+            }
+        }
     });
 }
 function btnThemLTC() {
+    var action = document.getElementById('ltcAction').value;
+    var isAdd = action === 'add';
+    var form = document.getElementById('ltcForm');
+    
+    if (isAdd && form) {
+        var isDirty = false;
+        var inputs = form.querySelectorAll('input[type="text"], input[type="number"]');
+        inputs.forEach(function(inp) {
+            if (inp.value && inp.value.trim() !== '') {
+                isDirty = true;
+            }
+        });
+        if (isDirty) {
+            if (!confirm('Dữ liệu đang nhập chưa được lưu. Để lưu lại, vui lòng nhấn nút "Ghi". Bạn có chắc chắn muốn xóa hết dữ liệu để nhập mới?')) {
+                return;
+            }
+        }
+    }
+    
     document.getElementById('ltcAction').value = 'add';
     document.getElementById('ltcMaltc').value = '';
     document.querySelectorAll('#ltcForm input[type="text"], #ltcForm input[type="number"]').forEach(function(i){i.value='';});
