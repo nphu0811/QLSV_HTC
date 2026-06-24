@@ -771,6 +771,14 @@ BEGIN
         THROW 50000, N'Điểm nhập vào phải nằm trong khoảng từ 0 đến 10.', 1;
     END;
 
+    IF @DIEM_GK IS NOT NULL
+       AND ABS(@DIEM_GK * 2 - ROUND(@DIEM_GK * 2, 0)) > 0.000001
+        THROW 50001, N'Điểm giữa kỳ phải là bội số của 0.5.', 1;
+
+    IF @DIEM_CK IS NOT NULL
+       AND ABS(@DIEM_CK * 2 - ROUND(@DIEM_CK * 2, 0)) > 0.000001
+        THROW 50002, N'Điểm cuối kỳ phải là bội số của 0.5.', 1;
+
     UPDATE dbo.DANGKY
     SET DIEM_CC = @DIEM_CC,
         DIEM_GK = @DIEM_GK,
@@ -944,6 +952,46 @@ BEGIN
         THROW 50000, N'Giảng viên không tồn tại.', 1;
     END;
 
+    -- Kiểm tra phân quyền KHOA đối với giảng viên mục tiêu
+    DECLARE @UserLogin NVARCHAR(128) = LOWER(SUSER_SNAME());
+    DECLARE @UserKhoa NCHAR(10) = NULL;
+    SELECT @UserKhoa = MAKHOA FROM dbo.TaiKhoan WHERE LOWER(Login) = @UserLogin;
+
+    IF IS_MEMBER('PGV') = 0 AND IS_SRVROLEMEMBER('sysadmin') = 0
+    BEGIN
+        IF IS_MEMBER('KHOA') = 1
+        BEGIN
+            DECLARE @TargetGvKhoa NCHAR(10);
+            SELECT @TargetGvKhoa = MAKHOA FROM dbo.GIANGVIEN WHERE MAGV = @MAGV;
+
+            IF @TargetGvKhoa IS NOT NULL
+            BEGIN
+                IF @UserKhoa IS NOT NULL
+                BEGIN
+                    IF RTRIM(@UserKhoa) <> RTRIM(@TargetGvKhoa)
+                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
+                END
+                ELSE
+                BEGIN
+                    IF @UserLogin = 'khoa_cntt' AND @TargetGvKhoa <> 'CNTT'
+                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
+
+                    IF @UserLogin = 'khoa_vt' AND @TargetGvKhoa <> 'VT'
+                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
+
+                    IF @UserLogin = 'khoa_chung' AND @TargetGvKhoa IN ('CNTT', 'VT')
+                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
+
+                    IF @UserLogin NOT IN ('khoa_cntt', 'khoa_vt', 'khoa_chung')
+                    BEGIN
+                        IF CHARINDEX(LOWER(RTRIM(@TargetGvKhoa)), @UserLogin) = 0
+                            THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
+                    END;
+                END;
+            END;
+        END;
+    END;
+
     IF EXISTS (SELECT 1 FROM dbo.TaiKhoan WHERE Login = @Login AND MAGV <> @MAGV)
     BEGIN
         THROW 50000, N'Tên đăng nhập đã tồn tại cho một giảng viên khác.', 1;
@@ -981,6 +1029,46 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM dbo.TaiKhoan WHERE MAGV = @MAGV)
     BEGIN
         THROW 50000, N'Giảng viên này không có tài khoản đăng nhập nào.', 1;
+    END;
+
+    -- Kiểm tra phân quyền KHOA đối với giảng viên mục tiêu
+    DECLARE @UserLogin NVARCHAR(128) = LOWER(SUSER_SNAME());
+    DECLARE @UserKhoa NCHAR(10) = NULL;
+    SELECT @UserKhoa = MAKHOA FROM dbo.TaiKhoan WHERE LOWER(Login) = @UserLogin;
+
+    IF IS_MEMBER('PGV') = 0 AND IS_SRVROLEMEMBER('sysadmin') = 0
+    BEGIN
+        IF IS_MEMBER('KHOA') = 1
+        BEGIN
+            DECLARE @TargetGvKhoa NCHAR(10);
+            SELECT @TargetGvKhoa = MAKHOA FROM dbo.GIANGVIEN WHERE MAGV = @MAGV;
+
+            IF @TargetGvKhoa IS NOT NULL
+            BEGIN
+                IF @UserKhoa IS NOT NULL
+                BEGIN
+                    IF RTRIM(@UserKhoa) <> RTRIM(@TargetGvKhoa)
+                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
+                END
+                ELSE
+                BEGIN
+                    IF @UserLogin = 'khoa_cntt' AND @TargetGvKhoa <> 'CNTT'
+                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
+
+                    IF @UserLogin = 'khoa_vt' AND @TargetGvKhoa <> 'VT'
+                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
+
+                    IF @UserLogin = 'khoa_chung' AND @TargetGvKhoa IN ('CNTT', 'VT')
+                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
+
+                    IF @UserLogin NOT IN ('khoa_cntt', 'khoa_vt', 'khoa_chung')
+                    BEGIN
+                        IF CHARINDEX(LOWER(RTRIM(@TargetGvKhoa)), @UserLogin) = 0
+                            THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
+                    END;
+                END;
+            END;
+        END;
     END;
 
     IF ISNULL(IS_MEMBER(N'KHOA'), 0) = 1

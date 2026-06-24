@@ -2,7 +2,7 @@
 
 Tài liệu này tóm tắt kết quả sửa đổi dự án **QLSV_HTC** nhằm đáp ứng đầy đủ các ưu tiên trong Đề 3 môn Hệ quản trị cơ sở dữ liệu và các quy định bảo mật bổ sung của giảng viên.
 
-## 1. Kết quả chỉnh sửa mới nhất (Bảo mật sâu SQL Server)
+## 1. Kết quả chỉnh sửa mới nhất (Bảo mật sâu SQL Server & Ràng buộc nghiệp vụ)
 
 - **Ngăn chặn truy cập trực tiếp bảng SINHVIEN và DANGKY:**
   - Đã thêm các câu lệnh `REVOKE SELECT` rõ ràng trên 2 bảng `SINHVIEN` và `DANGKY` của nhóm `NHOM_SV` (bao gồm login `sv`) trong [setup_security.sql](file:///c:/Users/admin/eclipse-workspace/HQTCSDL_De3/sql/setup_security.sql).
@@ -14,9 +14,11 @@ Tài liệu này tóm tắt kết quả sửa đổi dự án **QLSV_HTC** nhằ
     2. Kiểm tra theo các login cứng hệ thống (`khoa_cntt`, `khoa_vt`, `khoa_chung`).
     3. So khớp linh hoạt dựa trên tên login (ví dụ: login chứa từ khóa `cntt`, `vt` hay tên khoa cụ thể) để chặn trường hợp giảng viên tạo login tùy ý trong SSMS rồi gán vào role `KHOA` để sửa điểm trái phép cho khoa khác.
 
-- **Sắp xếp file SQL và dọn dẹp:**
-  - Toàn bộ stored procedure mới được gom vào file [stored_procedures.sql](file:///c:/Users/admin/eclipse-workspace/HQTCSDL_De3/sql/stored_procedures.sql) gốc.
-  - Toàn bộ phân quyền mới được gom vào file [setup_security.sql](file:///c:/Users/admin/eclipse-workspace/HQTCSDL_De3/sql/setup_security.sql) gốc.
+- **Bắt buộc điểm GK và CK theo bước 0.5 trong SP_CapNhatDiem:**
+  - Đã thêm kiểm tra trong `SP_CapNhatDiem` để đảm bảo nếu điểm giữa kỳ (`@DIEM_GK`) hoặc điểm cuối kỳ (`@DIEM_CK`) khác NULL thì bắt buộc phải là bội số của 0.5 (đáp ứng đúng yêu cầu của đề bài ngay tại mức Database).
+
+- **Kiểm tra KHOA quản lý tài khoản giảng viên khoa khác:**
+  - Thêm logic kiểm tra khoa của giảng viên đích so với khoa của tài khoản SQL đang thực thi trong `SP_LuuTaiKhoanGiangVien` và `SP_XoaTaiKhoanTheoGiangVien`. Nếu tài khoản thuộc nhóm `KHOA` cố tình lưu hoặc xóa tài khoản của giảng viên thuộc khoa khác bằng SSMS, stored procedure sẽ từ chối và báo lỗi rõ ràng.
 
 ---
 
@@ -38,11 +40,22 @@ Tài liệu này tóm tắt kết quả sửa đổi dự án **QLSV_HTC** nhằ
 - **Thử cập nhật lớp thuộc khoa Viễn thông (LTC 4):**
   - Đầu tiên gán tạm sinh viên vào LTC 4.
   - Chạy `EXEC SP_CapNhatDiem @DIEM_CC=10, @MALTC=4, @MASV='N15DCCN001'` -> Bị chặn và báo lỗi rõ ràng:
-    > *Msg 50000, Level 16, State 1, Server ..., Procedure SP_CapNhatDiem, Line ...*
     > *Tài khoản khoa_cntt thuộc khoa CNTT không được phép sửa điểm của khoa VT.*
-- **Thử tạo login tùy ý `khoa_cntt_custom` thuộc role KHOA:**
-  - Chạy `EXEC SP_CapNhatDiem @DIEM_CC=10, @MALTC=4, @MASV='N15DCCN001'` -> Bị chặn động và báo lỗi:
-    > *Tài khoản khoa khoa_cntt_custom không được phép sửa điểm của khoa VT.*
+
+### Ca kiểm thử 3: Kiểm tra bước điểm 0.5 trong `SP_CapNhatDiem`
+- **Cách thực hiện:** Đăng nhập bằng `khoa_cntt` và gọi `SP_CapNhatDiem` với điểm lẻ (không chia hết cho 0.5):
+  - `EXEC SP_CapNhatDiem @DIEM_CC=10, @DIEM_GK=7.3, @MALTC=1, @MASV='N15DCCN001'`
+- **Kết quả:** Báo lỗi từ chối thành công:
+  > *Msg 50001, Level 16, State 1, Server ..., Procedure SP_CapNhatDiem, Line ...*
+  > *Điểm giữa kỳ phải là bội số của 0.5.*
+
+### Ca kiểm thử 4: Kiểm tra KHOA quản lý tài khoản giảng viên khoa khác
+- **Cách thực hiện:** Đăng nhập bằng `khoa_cntt` và gọi lưu/xóa tài khoản giảng viên `GV04` (thuộc khoa `VT`):
+  - `EXEC SP_LuuTaiKhoanGiangVien 'GV04', 'gv04_login', '123', 'KHOA'`
+  - `EXEC SP_XoaTaiKhoanTheoGiangVien 'GV04'`
+- **Kết quả:** Cả hai stored procedure đều từ chối và báo lỗi:
+  > *Msg 50003, Level 16, State 1, Server ..., Procedure ..., Line ...*
+  > *Không được quản lý tài khoản giảng viên thuộc khoa khác.*
 
 ---
 
