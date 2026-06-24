@@ -11,6 +11,18 @@ public final class StoredProcedure {
     private StoredProcedure() {
     }
 
+    public static String getErrorMessage(Exception e) {
+        Throwable t = e;
+        while (t.getCause() != null) {
+            t = t.getCause();
+        }
+        String msg = t.getMessage();
+        if (msg == null) {
+            msg = e.getMessage();
+        }
+        return msg;
+    }
+
     public static List<Map<String, Object>> query(JdbcTemplate jdbc, String name, Object... args) {
         Object[] params = getParameters(args);
         return jdbc.queryForList(sql(name, params.length), params);

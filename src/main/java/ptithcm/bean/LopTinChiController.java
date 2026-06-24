@@ -82,7 +82,7 @@ public class LopTinChiController {
                 ra.addFlashAttribute("success", "Cập nhật lớp tín chỉ thành công!");
             }
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Lỗi: " + e.getMessage());
+            ra.addFlashAttribute("error", "Lỗi: " + StoredProcedure.getErrorMessage(e));
         }
         return "redirect:/loptinchi";
     }
@@ -98,7 +98,7 @@ public class LopTinChiController {
                     "SP_XoaLopTinChi", maltc);
             ra.addFlashAttribute("success", "Xóa lớp tín chỉ thành công!");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Không thể xóa: " + e.getMessage());
+            ra.addFlashAttribute("error", "Không thể xóa: " + StoredProcedure.getErrorMessage(e));
         }
         return "redirect:/loptinchi";
     }

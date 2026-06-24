@@ -57,10 +57,10 @@ public class TaiKhoanController {
                 : (maKhoa != null && !maKhoa.trim().isEmpty() ? maKhoa.trim() : null);
         try {
             StoredProcedure.update(jdbc, "SP_LuuTaiKhoanGiangVien",
-                    magv.trim(), login.trim(), matkhau, nhomQuyen.trim(), mkhoa);
+                     magv.trim(), login.trim(), matkhau, nhomQuyen.trim(), mkhoa);
             ra.addFlashAttribute("success", "Lưu tài khoản thành công!");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Lỗi: " + e.getMessage());
+            ra.addFlashAttribute("error", "Lỗi: " + StoredProcedure.getErrorMessage(e));
         }
         return "redirect:/taikhoan";
     }
@@ -89,7 +89,7 @@ public class TaiKhoanController {
             StoredProcedure.update(jdbc, "SP_XoaTaiKhoanTheoGiangVien", magv.trim());
             ra.addFlashAttribute("success", "Xóa tài khoản thành công!");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Không thể xóa: " + e.getMessage());
+            ra.addFlashAttribute("error", "Không thể xóa: " + StoredProcedure.getErrorMessage(e));
         }
         return "redirect:/taikhoan";
     }

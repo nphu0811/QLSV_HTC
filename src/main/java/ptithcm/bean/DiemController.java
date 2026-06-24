@@ -118,7 +118,7 @@ public class DiemController {
             }
             ra.addFlashAttribute("success", "Ghi điểm thành công!");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Lỗi ghi điểm: " + e.getMessage());
+            ra.addFlashAttribute("error", "Lỗi ghi điểm: " + StoredProcedure.getErrorMessage(e));
         }
         // Redirect back with params
         return "redirect:/diem";

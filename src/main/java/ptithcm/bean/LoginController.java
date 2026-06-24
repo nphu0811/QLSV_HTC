@@ -100,7 +100,7 @@ public class LoginController {
             }
             return "redirect:/home";
         } catch (Exception e) {
-            model.addAttribute("error", "Lỗi đăng nhập: " + e.getMessage());
+            model.addAttribute("error", "Lỗi đăng nhập: " + StoredProcedure.getErrorMessage(e));
             return "login";
         }
     }

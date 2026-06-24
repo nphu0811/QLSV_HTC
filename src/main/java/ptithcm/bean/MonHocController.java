@@ -51,7 +51,7 @@ public class MonHocController {
                 ra.addFlashAttribute("success", "Cập nhật môn học thành công!");
             }
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Lỗi: " + e.getMessage());
+            ra.addFlashAttribute("error", "Lỗi: " + StoredProcedure.getErrorMessage(e));
         }
         return "redirect:/monhoc";
     }
@@ -67,7 +67,7 @@ public class MonHocController {
                     "SP_XoaMonHoc", mamh.trim());
             ra.addFlashAttribute("success", "Xóa môn học thành công!");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Không thể xóa: " + e.getMessage());
+            ra.addFlashAttribute("error", "Không thể xóa: " + StoredProcedure.getErrorMessage(e));
         }
         return "redirect:/monhoc";
     }

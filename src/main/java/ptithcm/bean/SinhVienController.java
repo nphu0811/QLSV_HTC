@@ -81,7 +81,7 @@ public class SinhVienController {
                 ra.addFlashAttribute("success", "Cập nhật sinh viên thành công!");
             }
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Lỗi: " + e.getMessage());
+            ra.addFlashAttribute("error", "Lỗi: " + StoredProcedure.getErrorMessage(e));
         }
         return "redirect:/sinhvien?malop=" + malop.trim();
     }
@@ -98,7 +98,7 @@ public class SinhVienController {
                     "SP_XoaSinhVien", masv.trim());
             ra.addFlashAttribute("success", "Xóa sinh viên thành công!");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Không thể xóa: " + e.getMessage());
+            ra.addFlashAttribute("error", "Không thể xóa: " + StoredProcedure.getErrorMessage(e));
         }
         return "redirect:/sinhvien?malop=" + malop.trim();
     }

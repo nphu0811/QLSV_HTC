@@ -80,7 +80,7 @@ public class DangKyController {
             StoredProcedure.update(jdbc, "SP_DangKyLopTinChi", maltc, masv);
             ra.addFlashAttribute("success", "Đăng ký thành công!");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Lỗi đăng ký: " + e.getMessage());
+            ra.addFlashAttribute("error", "Lỗi đăng ký: " + StoredProcedure.getErrorMessage(e));
         }
         return "redirect:/dangky";
     }
@@ -97,7 +97,7 @@ public class DangKyController {
                     "SP_HuyDangKyLopTinChi", maltc, masv);
             ra.addFlashAttribute("success", "Hủy đăng ký thành công!");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Lỗi: " + e.getMessage());
+            ra.addFlashAttribute("error", "Lỗi: " + StoredProcedure.getErrorMessage(e));
         }
         return "redirect:/dangky";
     }

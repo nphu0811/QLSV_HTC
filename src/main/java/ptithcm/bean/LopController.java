@@ -50,7 +50,7 @@ public class LopController {
                 ra.addFlashAttribute("success", "Cập nhật lớp thành công!");
             }
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Lỗi: " + e.getMessage());
+            ra.addFlashAttribute("error", "Lỗi: " + StoredProcedure.getErrorMessage(e));
         }
         return "redirect:/lop";
     }
@@ -66,7 +66,7 @@ public class LopController {
                     "SP_XoaLop", maLop.trim());
             ra.addFlashAttribute("success", "Xóa lớp thành công!");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Không thể xóa: " + e.getMessage());
+            ra.addFlashAttribute("error", "Không thể xóa: " + StoredProcedure.getErrorMessage(e));
         }
         return "redirect:/lop";
     }

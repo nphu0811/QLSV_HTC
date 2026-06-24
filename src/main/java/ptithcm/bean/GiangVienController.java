@@ -63,7 +63,7 @@ public class GiangVienController {
                 ra.addFlashAttribute("success", "Cập nhật giảng viên thành công!");
             }
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Lỗi: " + e.getMessage());
+            ra.addFlashAttribute("error", "Lỗi: " + StoredProcedure.getErrorMessage(e));
         }
         return "redirect:/giangvien";
     }
@@ -79,7 +79,7 @@ public class GiangVienController {
                     "SP_XoaGiangVien", magv.trim());
             ra.addFlashAttribute("success", "Xóa giảng viên thành công!");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Không thể xóa: " + e.getMessage());
+            ra.addFlashAttribute("error", "Không thể xóa: " + StoredProcedure.getErrorMessage(e));
         }
         return "redirect:/giangvien";
     }
