@@ -118,6 +118,21 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    IF EXISTS (SELECT 1 FROM dbo.MONHOC WHERE MAMH = @MAMH)
+    BEGIN
+        THROW 50000, N'Mã môn học đã tồn tại.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.MONHOC WHERE TENMH = @TENMH)
+    BEGIN
+        THROW 50000, N'Tên môn học đã tồn tại.', 1;
+    END;
+
+    IF @SOTIET_LT < 0 OR @SOTIET_TH < 0
+    BEGIN
+        THROW 50000, N'Số tiết lý thuyết và thực hành không được âm.', 1;
+    END;
+
     INSERT INTO dbo.MONHOC (MAMH, TENMH, SOTIET_LT, SOTIET_TH)
     VALUES (@MAMH, @TENMH, @SOTIET_LT, @SOTIET_TH);
 END;
@@ -132,6 +147,21 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    IF NOT EXISTS (SELECT 1 FROM dbo.MONHOC WHERE MAMH = @MAMH)
+    BEGIN
+        THROW 50000, N'Môn học không tồn tại.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.MONHOC WHERE TENMH = @TENMH AND MAMH <> @MAMH)
+    BEGIN
+        THROW 50000, N'Tên môn học đã được sử dụng cho môn học khác.', 1;
+    END;
+
+    IF @SOTIET_LT < 0 OR @SOTIET_TH < 0
+    BEGIN
+        THROW 50000, N'Số tiết lý thuyết và thực hành không được âm.', 1;
+    END;
+
     UPDATE dbo.MONHOC
     SET TENMH = @TENMH,
         SOTIET_LT = @SOTIET_LT,
@@ -145,6 +175,16 @@ CREATE OR ALTER PROCEDURE dbo.SP_XoaMonHoc
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.MONHOC WHERE MAMH = @MAMH)
+    BEGIN
+        THROW 50000, N'Môn học không tồn tại.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.LOPTINCHI WHERE MAMH = @MAMH)
+    BEGIN
+        THROW 50000, N'Môn học đã được dùng cho lớp tín chỉ, không thể xóa.', 1;
+    END;
 
     DELETE FROM dbo.MONHOC
     WHERE MAMH = @MAMH;
@@ -187,6 +227,21 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    IF EXISTS (SELECT 1 FROM dbo.LOP WHERE MALOP = @MALOP)
+    BEGIN
+        THROW 50000, N'Mã lớp đã tồn tại.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.LOP WHERE TENLOP = @TENLOP)
+    BEGIN
+        THROW 50000, N'Tên lớp đã tồn tại.', 1;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.KHOA WHERE MAKHOA = @MAKHOA)
+    BEGIN
+        THROW 50000, N'Khoa không tồn tại.', 1;
+    END;
+
     INSERT INTO dbo.LOP (MALOP, TENLOP, KHOAHOC, MAKHOA)
     VALUES (@MALOP, @TENLOP, @KHOAHOC, @MAKHOA);
 END;
@@ -201,6 +256,21 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    IF NOT EXISTS (SELECT 1 FROM dbo.LOP WHERE MALOP = @MALOP)
+    BEGIN
+        THROW 50000, N'Lớp không tồn tại.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.LOP WHERE TENLOP = @TENLOP AND MALOP <> @MALOP)
+    BEGIN
+        THROW 50000, N'Tên lớp đã được sử dụng cho lớp khác.', 1;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.KHOA WHERE MAKHOA = @MAKHOA)
+    BEGIN
+        THROW 50000, N'Khoa không tồn tại.', 1;
+    END;
+
     UPDATE dbo.LOP
     SET TENLOP = @TENLOP,
         KHOAHOC = @KHOAHOC,
@@ -214,6 +284,16 @@ CREATE OR ALTER PROCEDURE dbo.SP_XoaLop
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.LOP WHERE MALOP = @MALOP)
+    BEGIN
+        THROW 50000, N'Lớp không tồn tại.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.SINHVIEN WHERE MALOP = @MALOP)
+    BEGIN
+        THROW 50000, N'Lớp đã có sinh viên, không thể xóa.', 1;
+    END;
 
     DELETE FROM dbo.LOP
     WHERE MALOP = @MALOP;
@@ -259,6 +339,16 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    IF EXISTS (SELECT 1 FROM dbo.GIANGVIEN WHERE MAGV = @MAGV)
+    BEGIN
+        THROW 50000, N'Mã giảng viên đã tồn tại.', 1;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.KHOA WHERE MAKHOA = @MAKHOA)
+    BEGIN
+        THROW 50000, N'Khoa không tồn tại.', 1;
+    END;
+
     INSERT INTO dbo.GIANGVIEN (MAGV, HO, TEN, HOCVI, HOCHAM, CHUYENMON, MAKHOA)
     VALUES (@MAGV, @HO, @TEN, @HOCVI, @HOCHAM, @CHUYENMON, @MAKHOA);
 END;
@@ -276,6 +366,16 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    IF NOT EXISTS (SELECT 1 FROM dbo.GIANGVIEN WHERE MAGV = @MAGV)
+    BEGIN
+        THROW 50000, N'Giảng viên không tồn tại.', 1;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.KHOA WHERE MAKHOA = @MAKHOA)
+    BEGIN
+        THROW 50000, N'Khoa không tồn tại.', 1;
+    END;
+
     UPDATE dbo.GIANGVIEN
     SET HO = @HO,
         TEN = @TEN,
@@ -292,6 +392,21 @@ CREATE OR ALTER PROCEDURE dbo.SP_XoaGiangVien
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.GIANGVIEN WHERE MAGV = @MAGV)
+    BEGIN
+        THROW 50000, N'Giảng viên không tồn tại.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.LOPTINCHI WHERE MAGV = @MAGV)
+    BEGIN
+        THROW 50000, N'Giảng viên đã được phân công lớp tín chỉ, không thể xóa.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.TaiKhoan WHERE MAGV = @MAGV)
+    BEGIN
+        THROW 50000, N'Giảng viên đang có tài khoản đăng nhập, không thể xóa.', 1;
+    END;
 
     DELETE FROM dbo.GIANGVIEN
     WHERE MAGV = @MAGV;
@@ -325,6 +440,16 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    IF EXISTS (SELECT 1 FROM dbo.SINHVIEN WHERE MASV = @MASV)
+    BEGIN
+        THROW 50000, N'Mã sinh viên đã tồn tại.', 1;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.LOP WHERE MALOP = @MALOP)
+    BEGIN
+        THROW 50000, N'Lớp học không tồn tại.', 1;
+    END;
+
     INSERT INTO dbo.SINHVIEN (MASV, HO, TEN, MALOP, PHAI, NGAYSINH, DIACHI, DANGHIHOC, PASSWORD)
     VALUES (@MASV, @HO, @TEN, @MALOP, @PHAI, @NGAYSINH, @DIACHI, @DANGHIHOC, @PASSWORD);
 END;
@@ -344,6 +469,16 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    IF NOT EXISTS (SELECT 1 FROM dbo.SINHVIEN WHERE MASV = @MASV)
+    BEGIN
+        THROW 50000, N'Sinh viên không tồn tại.', 1;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.LOP WHERE MALOP = @MALOP)
+    BEGIN
+        THROW 50000, N'Lớp học không tồn tại.', 1;
+    END;
+
     UPDATE dbo.SINHVIEN
     SET HO = @HO,
         TEN = @TEN,
@@ -362,6 +497,16 @@ CREATE OR ALTER PROCEDURE dbo.SP_XoaSinhVien
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.SINHVIEN WHERE MASV = @MASV)
+    BEGIN
+        THROW 50000, N'Sinh viên không tồn tại.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.DANGKY WHERE MASV = @MASV)
+    BEGIN
+        THROW 50000, N'Sinh viên đã đăng ký lớp tín chỉ, không thể xóa.', 1;
+    END;
 
     DELETE FROM dbo.SINHVIEN
     WHERE MASV = @MASV;
@@ -399,6 +544,31 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    IF NOT EXISTS (SELECT 1 FROM dbo.MONHOC WHERE MAMH = @MAMH)
+    BEGIN
+        THROW 50000, N'Môn học không tồn tại.', 1;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.GIANGVIEN WHERE MAGV = @MAGV)
+    BEGIN
+        THROW 50000, N'Giảng viên không tồn tại.', 1;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.KHOA WHERE MAKHOA = @MAKHOA)
+    BEGIN
+        THROW 50000, N'Khoa không tồn tại.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.LOPTINCHI WHERE NIENKHOA = @NIENKHOA AND HOCKY = @HOCKY AND MAMH = @MAMH AND NHOM = @NHOM)
+    BEGIN
+        THROW 50000, N'Lớp tín chỉ này đã tồn tại.', 1;
+    END;
+
+    IF @SOSVTOITHIEU <= 0
+    BEGIN
+        THROW 50000, N'Số sinh viên tối thiểu phải lớn hơn 0.', 1;
+    END;
+
     INSERT INTO dbo.LOPTINCHI (NIENKHOA, HOCKY, MAMH, NHOM, MAGV, MAKHOA, SOSVTOITHIEU, HUYLOP)
     VALUES (@NIENKHOA, @HOCKY, @MAMH, @NHOM, @MAGV, @MAKHOA, @SOSVTOITHIEU, 0);
 END;
@@ -416,6 +586,31 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    IF NOT EXISTS (SELECT 1 FROM dbo.LOPTINCHI WHERE MALTC = @MALTC)
+    BEGIN
+        THROW 50000, N'Lớp tín chỉ không tồn tại.', 1;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.MONHOC WHERE MAMH = @MAMH)
+    BEGIN
+        THROW 50000, N'Môn học không tồn tại.', 1;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.GIANGVIEN WHERE MAGV = @MAGV)
+    BEGIN
+        THROW 50000, N'Giảng viên không tồn tại.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.LOPTINCHI WHERE NIENKHOA = @NIENKHOA AND HOCKY = @HOCKY AND MAMH = @MAMH AND NHOM = @NHOM AND MALTC <> @MALTC)
+    BEGIN
+        THROW 50000, N'Lớp tín chỉ khác có cùng thông tin niên khóa, học kỳ, môn học, nhóm đã tồn tại.', 1;
+    END;
+
+    IF @SOSVTOITHIEU <= 0
+    BEGIN
+        THROW 50000, N'Số sinh viên tối thiểu phải lớn hơn 0.', 1;
+    END;
+
     UPDATE dbo.LOPTINCHI
     SET NIENKHOA = @NIENKHOA,
         HOCKY = @HOCKY,
@@ -432,6 +627,16 @@ CREATE OR ALTER PROCEDURE dbo.SP_XoaLopTinChi
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.LOPTINCHI WHERE MALTC = @MALTC)
+    BEGIN
+        THROW 50000, N'Lớp tín chỉ không tồn tại.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.DANGKY WHERE MALTC = @MALTC)
+    BEGIN
+        THROW 50000, N'Lớp tín chỉ đã có sinh viên đăng ký, không thể xóa.', 1;
+    END;
 
     DELETE FROM dbo.LOPTINCHI
     WHERE MALTC = @MALTC;
@@ -496,6 +701,18 @@ CREATE OR ALTER PROCEDURE dbo.SP_CapNhatDiem
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.DANGKY WHERE MALTC = @MALTC AND MASV = @MASV)
+    BEGIN
+        THROW 50000, N'Thông tin đăng ký lớp tín chỉ không tồn tại.', 1;
+    END;
+
+    IF (@DIEM_CC IS NOT NULL AND (@DIEM_CC < 0 OR @DIEM_CC > 10))
+       OR (@DIEM_GK IS NOT NULL AND (@DIEM_GK < 0.0 OR @DIEM_GK > 10.0))
+       OR (@DIEM_CK IS NOT NULL AND (@DIEM_CK < 0.0 OR @DIEM_CK > 10.0))
+    BEGIN
+        THROW 50000, N'Điểm nhập vào phải nằm trong khoảng từ 0 đến 10.', 1;
+    END;
 
     UPDATE dbo.DANGKY
     SET DIEM_CC = @DIEM_CC,
@@ -579,6 +796,21 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    IF NOT EXISTS (SELECT 1 FROM dbo.SINHVIEN WHERE MASV = @MASV)
+    BEGIN
+        THROW 50000, N'Sinh viên không tồn tại.', 1;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.LOPTINCHI WHERE MALTC = @MALTC)
+    BEGIN
+        THROW 50000, N'Lớp tín chỉ không tồn tại.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.LOPTINCHI WHERE MALTC = @MALTC AND HUYLOP = 1)
+    BEGIN
+        THROW 50000, N'Lớp tín chỉ đã bị hủy, không thể đăng ký.', 1;
+    END;
+
     IF EXISTS (
         SELECT 1
         FROM dbo.DANGKY WITH (UPDLOCK, HOLDLOCK)
@@ -603,6 +835,11 @@ CREATE OR ALTER PROCEDURE dbo.SP_HuyDangKyLopTinChi
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.DANGKY WHERE MALTC = @MALTC AND MASV = @MASV AND (HUYDANGKY = 0 OR HUYDANGKY IS NULL))
+    BEGIN
+        THROW 50000, N'Không tìm thấy thông tin đăng ký lớp tín chỉ hợp lệ để hủy.', 1;
+    END;
 
     UPDATE dbo.DANGKY
     SET HUYDANGKY = 1
@@ -645,6 +882,16 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    IF NOT EXISTS (SELECT 1 FROM dbo.GIANGVIEN WHERE MAGV = @MAGV)
+    BEGIN
+        THROW 50000, N'Giảng viên không tồn tại.', 1;
+    END;
+
+    IF EXISTS (SELECT 1 FROM dbo.TaiKhoan WHERE Login = @Login AND MAGV <> @MAGV)
+    BEGIN
+        THROW 50000, N'Tên đăng nhập đã tồn tại cho một giảng viên khác.', 1;
+    END;
+
     IF ISNULL(IS_MEMBER(N'KHOA'), 0) = 1 AND @NhomQuyen = N'PGV'
     BEGIN
         THROW 50001, N'Khoa khong duoc cap tai khoan nhom PGV.', 1;
@@ -673,6 +920,11 @@ CREATE OR ALTER PROCEDURE dbo.SP_XoaTaiKhoanTheoGiangVien
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.TaiKhoan WHERE MAGV = @MAGV)
+    BEGIN
+        THROW 50000, N'Giảng viên này không có tài khoản đăng nhập nào.', 1;
+    END;
 
     IF ISNULL(IS_MEMBER(N'KHOA'), 0) = 1
        AND EXISTS (SELECT 1 FROM dbo.TaiKhoan WHERE MAGV = @MAGV AND NhomQuyen = N'PGV')
