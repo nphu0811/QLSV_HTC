@@ -46,8 +46,13 @@ public class HomeController {
 
     @RequestMapping(value = "/change-khoa", method = RequestMethod.POST)
     public String changeKhoa(@RequestParam String maKhoa, HttpSession session) {
+        String nhomQuyen = (String) session.getAttribute("nhomQuyen");
+
+        if (!"PGV".equals(nhomQuyen)) {
+            return "redirect:/home";
+        }
+
         session.setAttribute("maKhoa", maKhoa.trim());
-        // Redirect back to referring page
         return "redirect:/home";
     }
 }

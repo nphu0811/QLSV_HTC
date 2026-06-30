@@ -159,6 +159,7 @@ BEGIN
     GRANT EXECUTE ON OBJECT::dbo.SP_LayKhoaTheoGiangVien TO KHOA;
     GRANT EXECUTE ON OBJECT::dbo.SP_LayKhoaTheoStudent TO KHOA;
     GRANT EXECUTE ON OBJECT::dbo.SP_LayKhoaTheoLop TO KHOA;
+    GRANT EXECUTE ON OBJECT::dbo.SP_DanhSachSinhVienTheoLop TO KHOA;
 END;
 GO
 
