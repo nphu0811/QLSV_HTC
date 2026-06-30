@@ -193,6 +193,82 @@ function selectLTC(row, maltc) {
         }
     }
 }
+
+function getLTCText(row, fieldName) {
+    var cell = row ? row.querySelector('[data-col="' + fieldName + '"]') : null;
+    return cell ? cell.textContent.trim() : '';
+}
+
+function getLTCSignatureFromForm() {
+    var form = document.getElementById('ltcForm');
+    if (!form) return null;
+    return {
+        nienkhoa: (form.querySelector('[name="nienkhoa"]') || {}).value || '',
+        hocky: (form.querySelector('[name="hocky"]') || {}).value || '',
+        mamh: (form.querySelector('[name="mamh"]') || {}).value || '',
+        nhom: (form.querySelector('[name="nhom"]') || {}).value || ''
+    };
+}
+
+function getLTCSignatureFromRow(row) {
+    return {
+        nienkhoa: getLTCText(row, 'NIENKHOA'),
+        hocky: getLTCText(row, 'HOCKY'),
+        mamh: getLTCText(row, 'MAMH'),
+        nhom: getLTCText(row, 'NHOM')
+    };
+}
+
+function normalizeLTCValue(value) {
+    return (value || '').toString().trim().toLowerCase();
+}
+
+function isSameLTCSignature(left, right) {
+    if (!left || !right) return false;
+    return normalizeLTCValue(left.nienkhoa) === normalizeLTCValue(right.nienkhoa)
+        && normalizeLTCValue(left.hocky) === normalizeLTCValue(right.hocky)
+        && normalizeLTCValue(left.mamh) === normalizeLTCValue(right.mamh)
+        && normalizeLTCValue(left.nhom) === normalizeLTCValue(right.nhom);
+}
+
+function ltcExistsInCurrentTable(signature) {
+    var rows = document.querySelectorAll('#ltcTable tbody tr');
+    for (var i = 0; i < rows.length; i++) {
+        if (isSameLTCSignature(signature, getLTCSignatureFromRow(rows[i]))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function getLTCSubjectName() {
+    var select = document.querySelector('#ltcForm [name="mamh"]');
+    if (!select || select.selectedIndex < 0) return '';
+    return select.options[select.selectedIndex].text.trim();
+}
+
+function getLTCDetailText(signature) {
+    if (!signature) return '';
+    var subjectName = getLTCSubjectName() || signature.mamh;
+    var parts = [];
+    if (signature.nienkhoa) parts.push('niên khóa ' + signature.nienkhoa);
+    if (signature.hocky) parts.push('học kỳ ' + signature.hocky);
+    if (subjectName) parts.push('môn ' + subjectName);
+    if (signature.nhom) parts.push('nhóm ' + signature.nhom);
+    return parts.length ? ' (' + parts.join(', ') + ')' : '';
+}
+
+function getLTCAddModeWarningMessage() {
+    var signature = getLTCSignatureFromForm();
+    var detailText = getLTCDetailText(signature);
+
+    if (ltcExistsInCurrentTable(signature)) {
+        return 'Lớp tín chỉ' + detailText + ' đã tồn tại. Vui lòng đổi nhóm hoặc chọn dòng tương ứng để cập nhật.';
+    }
+
+    return 'Lớp tín chỉ' + detailText + ' chưa được ghi. Hãy nhấn "Ghi" để lưu, hoặc nhấn "Thêm" một lần nữa để làm trống form.';
+}
+
 function btnThemLTC() {
     var form = document.getElementById('ltcForm');
     if (!form) return;
@@ -202,9 +278,9 @@ function btnThemLTC() {
     
     if (isDirty && !confirmClear) {
         if (typeof showFormWarning === 'function') {
-            showFormWarning(form, 'Dữ liệu đang nhập chưa được lưu. Để lưu lại, vui lòng nhấn nút "Ghi". Hoặc nhấn nút "Thêm" một lần nữa để xác nhận xóa sạch dữ liệu.');
+            showFormWarning(form, getLTCAddModeWarningMessage());
         } else {
-            if (!confirm('Dữ liệu đang nhập chưa được lưu. Bạn có muốn xóa sạch để nhập mới?')) return;
+            if (!confirm(getLTCAddModeWarningMessage())) return;
         }
         form.setAttribute('data-confirm-clear', 'true');
         return;
@@ -220,6 +296,24 @@ function btnThemLTC() {
     document.querySelectorAll('#ltcForm input[type="text"], #ltcForm input[type="number"]').forEach(function(i){i.value='';});
     document.querySelectorAll('#ltcTable tbody tr').forEach(function(r){r.classList.remove('selected');});
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    var form = document.getElementById('ltcForm');
+    if (!form) return;
+
+    form.addEventListener('submit', function(event) {
+        var actionField = document.getElementById('ltcAction');
+        if (!actionField || actionField.value !== 'add') return;
+
+        var signature = getLTCSignatureFromForm();
+        if (ltcExistsInCurrentTable(signature)) {
+            event.preventDefault();
+            if (typeof showFormWarning === 'function') {
+                showFormWarning(form, 'Lớp tín chỉ' + getLTCDetailText(signature) + ' đã tồn tại. Vui lòng đổi nhóm hoặc chọn dòng tương ứng để cập nhật.');
+            }
+        }
+    });
+});
 </script>
 </body>
 </html>

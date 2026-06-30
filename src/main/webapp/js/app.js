@@ -67,6 +67,62 @@ function initTableSelection(tableId, formPrefix) {
 }
 
 // ===== CRUD BUTTON HANDLERS =====
+function getCodeLabel(formPrefix) {
+    var labels = {
+        kh: 'Mã khoa',
+        mh: 'Mã môn học',
+        lop: 'Mã lớp',
+        sv: 'Mã sinh viên',
+        gv: 'Mã giảng viên'
+    };
+    return labels[formPrefix] || 'Mã bản ghi';
+}
+
+function getCurrentFormCode(formPrefix) {
+    var pkField = document.getElementById(formPrefix + 'PK');
+    return pkField ? pkField.value.trim() : '';
+}
+
+function codeExistsInCurrentTable(formPrefix, code) {
+    if (!code) return false;
+    var table = document.getElementById(formPrefix + 'Table');
+    var pkField = document.getElementById(formPrefix + 'PK');
+    if (!table || !pkField) return false;
+
+    var fieldName = pkField.getAttribute('data-field');
+    if (!fieldName) return false;
+
+    var cells = table.querySelectorAll('tbody [data-col="' + fieldName + '"]');
+    var normalizedCode = code.trim().toLowerCase();
+    for (var i = 0; i < cells.length; i++) {
+        if (cells[i].textContent.trim().toLowerCase() === normalizedCode) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function getDuplicateCodeMessage(formPrefix, code) {
+    var label = getCodeLabel(formPrefix);
+    var codeText = code ? ' "' + code + '"' : '';
+    return label + codeText + ' đã tồn tại. Vui lòng nhập mã khác hoặc chọn dòng tương ứng để cập nhật.';
+}
+
+function getAddModeWarningMessage(formPrefix) {
+    var label = getCodeLabel(formPrefix);
+    var code = getCurrentFormCode(formPrefix);
+
+    if (!code) {
+        return label + ' chưa được nhập. Vui lòng nhập mã trước khi nhấn "Ghi" hoặc nhấn "Thêm" một lần nữa để làm trống form.';
+    }
+
+    if (codeExistsInCurrentTable(formPrefix, code)) {
+        return getDuplicateCodeMessage(formPrefix, code) + ' Nếu đang sửa dòng này, hãy nhấn "Ghi"; nếu muốn nhập mã mới, nhấn "Thêm" một lần nữa để làm trống form.';
+    }
+
+    return label + ' "' + code + '" chưa được ghi. Hãy nhấn "Ghi" để lưu mã này, hoặc nhấn "Thêm" một lần nữa để làm trống form và nhập mã khác.';
+}
+
 function btnThem(formPrefix) {
     var form = document.getElementById(formPrefix + 'Form');
     if (!form) return;
@@ -75,7 +131,7 @@ function btnThem(formPrefix) {
     var confirmClear = form.getAttribute('data-confirm-clear') === 'true';
 
     if (isDirty && !confirmClear) {
-        showFormWarning(form, 'Dữ liệu đang nhập chưa được lưu. Để lưu lại, vui lòng nhấn nút "Ghi". Hoặc nhấn nút "Thêm" một lần nữa để xác nhận xóa sạch dữ liệu.');
+        showFormWarning(form, getAddModeWarningMessage(formPrefix));
         form.setAttribute('data-confirm-clear', 'true');
         return;
     }
@@ -419,6 +475,26 @@ function initFormDirtyListeners() {
     });
 }
 
+function initDuplicateCodeValidators() {
+    ['kh', 'mh', 'lop', 'sv', 'gv'].forEach(function(formPrefix) {
+        var form = document.getElementById(formPrefix + 'Form');
+        var actionField = document.getElementById(formPrefix + 'Action');
+        var pkField = document.getElementById(formPrefix + 'PK');
+        if (!form || !actionField || !pkField) return;
+
+        form.addEventListener('submit', function(event) {
+            if (actionField.value !== 'add') return;
+
+            var code = pkField.value.trim();
+            if (codeExistsInCurrentTable(formPrefix, code)) {
+                event.preventDefault();
+                showFormWarning(form, getDuplicateCodeMessage(formPrefix, code));
+                pkField.focus();
+            }
+        });
+    });
+}
+
 // ===== DOCUMENT READY =====
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize sidebar controls
@@ -426,6 +502,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize dirty listeners for all forms
     initFormDirtyListeners();
+
+    // Validate duplicate primary codes before submit
+    initDuplicateCodeValidators();
 
     // Highlight active sidebar link
     var currentPath = window.location.pathname;
