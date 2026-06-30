@@ -29,25 +29,6 @@ else
     echo "=== Lỗi khi tạo database (có thể đã tồn tại) ==="
 fi
 
-# Add TaiKhoan table if not exists
-echo "=== Đang tạo bảng TaiKhoan... ==="
-/opt/mssql-tools18/bin/sqlcmd -S "$SQL_SERVER" -U sa -P "$SA_PASSWORD" -C -d QLDSV_HTC -Q "
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'TaiKhoan')
-BEGIN
-    CREATE TABLE TaiKhoan (
-        Login NVARCHAR(50) PRIMARY KEY,
-        MatKhau NVARCHAR(50) NOT NULL,
-        NhomQuyen NVARCHAR(20) NOT NULL,
-        MAKHOA NCHAR(10) NULL,
-        TrangThai NVARCHAR(20) DEFAULT 'Active',
-        NgayTao DATETIME DEFAULT GETDATE()
-    );
-    PRINT N'Đã tạo bảng TaiKhoan';
-END
-ELSE
-    PRINT N'Bảng TaiKhoan đã tồn tại';
-"
-
 # Run the security/permissions script
 echo "=== Đang thiết lập phân quyền... ==="
 /opt/mssql-tools18/bin/sqlcmd -S "$SQL_SERVER" -U sa -P "$SA_PASSWORD" -C \

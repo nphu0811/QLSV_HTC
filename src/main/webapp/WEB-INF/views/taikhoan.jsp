@@ -58,7 +58,7 @@
                         <label class="col-sm-3 col-form-label text-end text-dark">Tài khoản</label>
                         <div class="col-sm-9">
                             <input type="text" id="inputLogin" name="login" class="form-control"
-                                   style="border: 1px solid #0284c7;" required>
+                                   style="border: 1px solid #0284c7;" readonly required>
                         </div>
                     </div>
 
@@ -143,13 +143,12 @@
 
         if(magv !== "") {
             var login = selected.getAttribute("data-login");
-            var mk = selected.getAttribute("data-mk");
             var quyen = selected.getAttribute("data-quyen");
             var makhoa = selected.getAttribute("data-makhoa");
 
             if(login && login !== "") {
                 document.getElementById("inputLogin").value = login;
-                document.getElementById("inputMatKhau").value = mk;
+                document.getElementById("inputMatKhau").value = "";
                 if(quyen) {
                     document.getElementById("inputQuyen").value = quyen;
                 }
@@ -157,7 +156,7 @@
                     document.getElementById("inputKhoa").value = makhoa;
                 }
             } else {
-                document.getElementById("inputLogin").value = "";
+                document.getElementById("inputLogin").value = magv;
                 document.getElementById("inputMatKhau").value = "";
                 document.getElementById("inputQuyen").selectedIndex = 0;
             }

@@ -58,25 +58,36 @@ public class LoginController {
                 session.setAttribute("maKhoa", maKhoa);
 
             } else {
-                // === GIẢNG VIÊN / PGV / KHOA: kiểm tra bảng TaiKhoan ===
-                List<Map<String, Object>> rows = StoredProcedure.query(jdbc,
-                        "SP_LoginTaiKhoan", username.trim(), password);
-                if (rows.isEmpty()) {
-                    model.addAttribute("error", "Login hoặc mật khẩu không đúng!");
+                String loginName = username.trim();
+                String loginPassword = password != null ? password : "";
+                JdbcTemplate loginJdbc = connHelper.getJdbcTemplate(loginName, loginPassword);
+                List<Map<String, Object>> rows = StoredProcedure.query(loginJdbc,
+                        "SP_ThongTinDangNhapSql");
+                if (rows.isEmpty() || rows.get(0).get("NhomQuyen") == null) {
+                    model.addAttribute("error", "Login không thuộc nhóm quyền PGV/KHOA!");
                     return "login";
                 }
-                Map<String, Object> tk = rows.get(0);
-                String nhomQuyen = tk.get("NhomQuyen").toString().trim();
+
+                Map<String, Object> info = rows.get(0);
+                String nhomQuyen = info.get("NhomQuyen").toString().trim();
+                if (!"PGV".equals(nhomQuyen) && !"KHOA".equals(nhomQuyen)) {
+                    model.addAttribute("error", "Tài khoản này không dùng cho màn hình giảng viên!");
+                    return "login";
+                }
+
                 session.setAttribute("nhomQuyen", nhomQuyen);
-                session.setAttribute("displayName", username.trim());
-                session.setAttribute("loginName", username.trim());
+                session.setAttribute("displayName", loginName);
+                session.setAttribute("loginName", loginName);
+                session.setAttribute("sqlLogin", loginName);
+                session.setAttribute("sqlPassword", loginPassword);
+
+                Object magv = info.get("MAGV");
+                if (magv != null) {
+                    session.setAttribute("magv", magv.toString().trim());
+                }
 
                 if ("PGV".equals(nhomQuyen)) {
-                    session.setAttribute("sqlLogin", "pgv_admin");
-                    session.setAttribute("sqlPassword", "123456");
-                    // PGV: lấy danh sách khoa bằng connection của pgv_admin
-                    JdbcTemplate pgvJdbc = connHelper.getJdbcTemplate(session);
-                    List<Map<String, Object>> khoaList = StoredProcedure.query(pgvJdbc,
+                    List<Map<String, Object>> khoaList = StoredProcedure.query(loginJdbc,
                             "SP_DanhSachKhoa");
                     session.setAttribute("khoaList", khoaList);
                     if (!khoaList.isEmpty()) {
@@ -84,21 +95,13 @@ public class LoginController {
                                 khoaList.get(0).get("MAKHOA").toString().trim());
                     }
                 } else if ("KHOA".equals(nhomQuyen)) {
-                    Object mk = tk.get("MAKHOA");
+                    Object mk = info.get("MAKHOA");
                     String maKhoa = (mk != null) ? mk.toString().trim() : "";
-                    session.setAttribute("maKhoa", maKhoa);
-                    // SQL login theo khoa
-                    if ("CNTT".equals(maKhoa)) {
-                        session.setAttribute("sqlLogin", "khoa_cntt");
-                        session.setAttribute("sqlPassword", "khoa123");
-                    } else if ("VT".equals(maKhoa)) {
-                        session.setAttribute("sqlLogin", "khoa_vt");
-                        session.setAttribute("sqlPassword", "khoa456");
-                    } else {
-                        // Khoa mới tạo động: sử dụng login chung khoa_chung
-                        session.setAttribute("sqlLogin", "khoa_chung");
-                        session.setAttribute("sqlPassword", "khoachung123");
+                    if (maKhoa.isEmpty()) {
+                        model.addAttribute("error", "SQL login KHOA chưa xác định được mã khoa!");
+                        return "login";
                     }
+                    session.setAttribute("maKhoa", maKhoa);
                 }
             }
             return "redirect:/home";

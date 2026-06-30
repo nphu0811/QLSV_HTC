@@ -1,81 +1,25 @@
-# Walkthrough - Báo Cáo Nghiệm Thu & Kiểm Thử QLSV_HTC
+# Walkthrough - QLSV_HTC
 
-Tài liệu này tóm tắt kết quả sửa đổi dự án **QLSV_HTC** nhằm đáp ứng đầy đủ các ưu tiên trong Đề 3 môn Hệ quản trị cơ sở dữ liệu và các quy định bảo mật bổ sung của giảng viên.
+## Điểm sửa quan trọng về đăng nhập và phân quyền
 
-## 1. Kết quả chỉnh sửa mới nhất (Bảo mật sâu SQL Server & Ràng buộc nghiệp vụ)
+- Không tạo bảng `dbo.TaiKhoan` trong database nghiệp vụ.
+- Đăng nhập giảng viên/PGV/Khoa dùng trực tiếp SQL Server Login:
+  - `pgv_admin` / `123456` thuộc role `PGV`.
+  - `khoa_cntt` / `khoa123` thuộc role `KHOA`.
+  - `khoa_vt` / `khoa456` thuộc role `KHOA`.
+  - `sv` / `sv123` thuộc role vật lý `NHOM_SV`, tương ứng nhóm ứng dụng `SV`.
+- App thử kết nối bằng chính SQL login người dùng nhập, sau đó gọi `SP_ThongTinDangNhapSql` để đọc role hiện tại qua `IS_MEMBER`.
+- Khoa của login `khoa_cntt` và `khoa_vt` được suy ra từ tên login. Nếu tạo login riêng cho giảng viên, login phải trùng `MAGV`; khi đó khoa lấy từ `GIANGVIEN.MAKHOA`.
+- Màn hình tài khoản không lưu mật khẩu vào bảng phụ. Nếu PGV tạo tài khoản giảng viên, stored procedure sẽ tạo SQL Login/User thật và add user vào role `PGV` hoặc `KHOA`.
 
-- **Ngăn chặn truy cập trực tiếp bảng SINHVIEN và DANGKY:**
-  - Đã thêm các câu lệnh `REVOKE SELECT` rõ ràng trên 2 bảng `SINHVIEN` và `DANGKY` của nhóm `NHOM_SV` (bao gồm login `sv`) trong [setup_security.sql](file:///c:/Users/admin/eclipse-workspace/HQTCSDL_De3/sql/setup_security.sql).
-  - Sử dụng cơ chế **Ownership Chaining** của SQL Server: Sinh viên chỉ có quyền thực thi các stored procedure được cấp phép (`SP_LoginSinhVien`, `SP_ThongTinSinhVienDangKy`, `SP_DanhSachLopTinChiDaDangKy`, `SP_DanhSachLopTinChiCoTheDangKy`, `SP_DangKyLopTinChi`, `SP_HuyDangKyLopTinChi`, `SP_BaoCaoPhieuDiem`, v.v.). Khi đó sinh viên có thể đăng ký môn, xem phiếu điểm bình thường trên web nhưng nếu truy cập trực tiếp bằng login `sv` trong SSMS và chạy lệnh `SELECT *` sẽ bị SQL Server từ chối ngay lập tức.
-  
-- **Tự động kiểm tra khoa sở hữu trong SP_CapNhatDiem:**
-  - Nâng cấp stored procedure `SP_CapNhatDiem` trong [stored_procedures.sql](file:///c:/Users/admin/eclipse-workspace/HQTCSDL_De3/sql/stored_procedures.sql) để tự động kiểm tra quyền của tài khoản SQL thực thi (`SUSER_SNAME()`):
-    1. Tra cứu phòng ban (`MAKHOA`) của tài khoản trong bảng `dbo.TaiKhoan` (dành cho giảng viên đăng nhập qua web).
-    2. Kiểm tra theo các login cứng hệ thống (`khoa_cntt`, `khoa_vt`, `khoa_chung`).
-    3. So khớp linh hoạt dựa trên tên login (ví dụ: login chứa từ khóa `cntt`, `vt` hay tên khoa cụ thể) để chặn trường hợp giảng viên tạo login tùy ý trong SSMS rồi gán vào role `KHOA` để sửa điểm trái phép cho khoa khác.
+## Cách giải thích nếu bị hỏi
 
-- **Tự động làm tròn điểm GK và CK về bước 0.5 trong SP_CapNhatDiem và Java Backend:**
-  - Thay vì báo lỗi và bắt người dùng nhập lại, hệ thống sẽ tự động làm tròn điểm giữa kỳ (`@DIEM_GK`) và điểm cuối kỳ (`@DIEM_CK`) về bội số gần nhất của 0.5 (ví dụ: 9.3 -> 9.5; 9.1 -> 9.0) cả ở mức Java Controller và Stored Procedure (đáp ứng đúng yêu cầu của đề bài một cách tự động và thông minh).
+"Em không thêm bảng tài khoản vào schema nghiệp vụ. Phần đăng nhập dùng SQL Server Login/User/Role: login được map với database user, user được add vào role, app đăng nhập xong thì dựa vào role của phiên SQL hiện tại. Các bảng nghiệp vụ như khoa, lớp, sinh viên, giảng viên, lớp tín chỉ, đăng ký vẫn dùng đúng schema đề. Nếu cần xác định khoa của giảng viên thì dùng `GIANGVIEN.MAKHOA`, không dùng bảng ánh xạ riêng."
 
-- **Kiểm tra KHOA quản lý tài khoản giảng viên khoa khác:**
-  - Thêm logic kiểm tra khoa của giảng viên đích so với khoa của tài khoản SQL đang thực thi trong `SP_LuuTaiKhoanGiangVien` và `SP_XoaTaiKhoanTheoGiangVien`. Nếu tài khoản thuộc nhóm `KHOA` cố tình lưu hoặc xóa tài khoản của giảng viên thuộc khoa khác bằng SSMS, stored procedure sẽ từ chối và báo lỗi rõ ràng.
+## Kiểm thử nhanh
 
----
-
-## 2. Kết quả kiểm thử bảo mật (Database Verification)
-
-### Ca kiểm thử 1: Kiểm tra quyền SELECT trực tiếp của Sinh viên (`sv`)
-- **Cách thực hiện:** Kết nối SSMS bằng login `sv` (mật khẩu `sv123`), thử truy vấn trực tiếp:
-  - `SELECT * FROM SINHVIEN`
-  - `SELECT * FROM DANGKY`
-- **Kết quả:** SQL Server chặn truy cập và báo lỗi:
-  > *Msg 229, Level 14, State 5, Server ..., Line 1*
-  > *The SELECT permission was denied on the object 'SINHVIEN', database 'QLDSV_HTC', schema 'dbo'.*
-- **Kết quả thực thi qua SP:** Gọi `EXEC SP_LoginSinhVien 'N15DCCN001'` hoặc `EXEC SP_ThongTinSinhVienDangKy 'N15DCCN001'` thành công, trả về thông tin bình thường (Xác nhận Ownership Chaining hoạt động tốt).
-
-### Ca kiểm thử 2: Kiểm tra phân quyền khoa sở hữu trong `SP_CapNhatDiem`
-- **Cách thực hiện:** Kết nối SSMS bằng login `khoa_cntt` (mật khẩu `khoa123`).
-- **Thử cập nhật lớp thuộc khoa CNTT (LTC 1):**
-  - `EXEC SP_CapNhatDiem @DIEM_CC=10, @MALTC=1, @MASV='N15DCCN001'` -> Thành công.
-- **Thử cập nhật lớp thuộc khoa Viễn thông (LTC 4):**
-  - Đầu tiên gán tạm sinh viên vào LTC 4.
-  - Chạy `EXEC SP_CapNhatDiem @DIEM_CC=10, @MALTC=4, @MASV='N15DCCN001'` -> Bị chặn và báo lỗi rõ ràng:
-    > *Tài khoản khoa_cntt thuộc khoa CNTT không được phép sửa điểm của khoa VT.*
-
-### Ca kiểm thử 3: Tự động làm tròn điểm về bước 0.5 trong `SP_CapNhatDiem`
-- **Cách thực hiện:** Đăng nhập bằng `khoa_cntt` và gọi `SP_CapNhatDiem` với điểm lẻ (ví dụ: `7.3` cho giữa kỳ và `8.1` cho cuối kỳ):
-  - `EXEC SP_CapNhatDiem @DIEM_CC=10, @DIEM_GK=7.3, @DIEM_CK=8.1, @MALTC=1, @MASV='N15DCCN001'`
-- **Kết quả:** Giao dịch lưu điểm thành công. Khi truy vấn lại bảng `DANGKY`, điểm GK được lưu là `7.5` và điểm CK được lưu là `8.0`.
-
-### Ca kiểm thử 4: Kiểm tra KHOA quản lý tài khoản giảng viên khoa khác
-- **Cách thực hiện:** Đăng nhập bằng `khoa_cntt` và gọi lưu/xóa tài khoản giảng viên `GV04` (thuộc khoa `VT`):
-  - `EXEC SP_LuuTaiKhoanGiangVien 'GV04', 'gv04_login', '123', 'KHOA'`
-  - `EXEC SP_XoaTaiKhoanTheoGiangVien 'GV04'`
-- **Kết quả:** Cả hai stored procedure đều từ chối và báo lỗi:
-  > *Msg 50003, Level 16, State 1, Server ..., Procedure ..., Line ...*
-  > *Không được quản lý tài khoản giảng viên thuộc khoa khác.*
-
----
-
-## 3. Xác minh giao diện ứng dụng Sinh viên (Application Verification)
-
-Hệ thống đã được chạy thực tế và kiểm tra luồng sinh viên bằng tác vụ duyệt web tự động. Sinh viên vẫn đăng nhập, xem thông tin đăng ký môn học và in phiếu điểm bình thường không phát sinh lỗi.
-
-### Minh chứng ghi hình và chụp ảnh màn hình:
-
-- **Phiếu điểm sinh viên được in thành công:**
-  ![Phiếu điểm sinh viên](/Users/admin/.gemini/antigravity-ide/brain/6811f5f8-5667-42b3-a6b8-faf42f5c3a1a/student_grades_report_1782309802048.png)
-
-- **Ghi hình toàn bộ luồng kiểm thử Sinh viên:**
-  ![Ghi hình kiểm thử](/Users/admin/.gemini/antigravity-ide/brain/6811f5f8-5667-42b3-a6b8-faf42f5c3a1a/student_flow_verify_1782309716653.webp)
-
----
-
-## 4. Hướng dẫn tài khoản kiểm thử mặc định
-
-| Nhóm quyền | Tài khoản (Login) | Mật khẩu (Password) | SQL Server Login tương ứng |
-| :--- | :--- | :--- | :--- |
-| **Phòng Giáo Vụ (PGV)** | `pgv_admin` | `123456` | `pgv_admin` (pass: `123456`) |
-| **Khoa CNTT** | `khoa_cntt` | `khoa123` | `khoa_cntt` (pass: `khoa123`) |
-| **Khoa Viễn thông** | `khoa_vt` | `khoa456` | `khoa_vt` (pass: `khoa456`) |
-| **Sinh viên (SV)** | `N15DCCN001` | *Không cần mật khẩu* | `sv` (pass: `sv123`) |
+- Chạy `sql/stored_procedures.sql`.
+- Chạy `sql/setup_security.sql`.
+- Đăng nhập tab Giảng viên bằng `pgv_admin` / `123456`.
+- Đăng nhập tab Giảng viên bằng `khoa_cntt` / `khoa123` và kiểm tra session thuộc nhóm `KHOA`, mã khoa `CNTT`.
+- Đăng nhập tab Sinh viên bằng `N15DCCN001`; app dùng SQL login `sv` và chỉ thao tác dữ liệu qua stored procedure được cấp quyền.

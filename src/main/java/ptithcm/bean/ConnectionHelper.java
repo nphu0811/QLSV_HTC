@@ -72,8 +72,17 @@ public class ConnectionHelper {
         return new JdbcTemplate(ds);
     }
 
+    public JdbcTemplate getJdbcTemplate(String login, String password) {
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setDriverClassName(DRIVER);
+        ds.setUrl(getDbUrl());
+        ds.setUsername(login);
+        ds.setPassword(password);
+        return new JdbcTemplate(ds);
+    }
+
     /**
-     * Tạo JdbcTemplate mặc định (sa) cho xác thực ban đầu.
+     * Tạo JdbcTemplate mặc định cho xác thực ban đầu.
      */
     public JdbcTemplate getDefaultJdbcTemplate() {
         DriverManagerDataSource ds = new DriverManagerDataSource();

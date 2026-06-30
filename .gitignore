@@ -1,5 +1,6 @@
 # Java/Eclipse
 /build/
+/target/
 .settings/
 .classpath
 .project

@@ -6,22 +6,33 @@ GO
 SET QUOTED_IDENTIFIER ON;
 GO
 
-IF OBJECT_ID(N'dbo.TaiKhoan', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.TaiKhoan (
-        Login NVARCHAR(50) NOT NULL PRIMARY KEY,
-        MatKhau NVARCHAR(50) NOT NULL,
-        NhomQuyen NVARCHAR(20) NOT NULL,
-        MAGV NCHAR(10) NULL,
-        MAKHOA NCHAR(10) NULL,
-        TrangThai NVARCHAR(20) NOT NULL CONSTRAINT DF_TaiKhoan_TrangThai DEFAULT N'Active',
-        NgayTao DATETIME NOT NULL CONSTRAINT DF_TaiKhoan_NgayTao DEFAULT GETDATE()
-    );
-END;
+DROP PROCEDURE IF EXISTS dbo.SP_LoginTaiKhoan;
 GO
 
-IF COL_LENGTH(N'dbo.TaiKhoan', N'MAGV') IS NULL
-    ALTER TABLE dbo.TaiKhoan ADD MAGV NCHAR(10) NULL;
+DROP TABLE IF EXISTS dbo.TaiKhoan;
+GO
+
+CREATE OR ALTER FUNCTION dbo.FN_MaKhoaCuaLogin
+(
+    @LoginName SYSNAME
+)
+RETURNS NCHAR(10)
+AS
+BEGIN
+    DECLARE @Login SYSNAME = LOWER(LTRIM(RTRIM(@LoginName)));
+    DECLARE @MAKHOA NCHAR(10) = NULL;
+
+    IF @Login = N'khoa_cntt'
+        SET @MAKHOA = N'CNTT';
+    ELSE IF @Login = N'khoa_vt'
+        SET @MAKHOA = N'VT';
+    ELSE
+        SELECT @MAKHOA = G.MAKHOA
+        FROM dbo.GIANGVIEN AS G
+        WHERE LOWER(RTRIM(G.MAGV)) = @Login;
+
+    RETURN @MAKHOA;
+END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.SP_LoginSinhVien
@@ -36,18 +47,34 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.SP_LoginTaiKhoan
-    @Login NVARCHAR(50),
-    @MatKhau NVARCHAR(50)
+CREATE OR ALTER PROCEDURE dbo.SP_ThongTinDangNhapSql
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT *
-    FROM dbo.TaiKhoan
-    WHERE Login = @Login
-      AND MatKhau = @MatKhau
-      AND TrangThai = N'Active';
+    DECLARE @LoginName SYSNAME = SUSER_SNAME();
+    DECLARE @NhomQuyen NVARCHAR(20) = NULL;
+    DECLARE @MAGV NCHAR(10) = NULL;
+    DECLARE @MAKHOA NCHAR(10) = NULL;
+
+    IF ISNULL(IS_MEMBER(N'PGV'), 0) = 1 OR ISNULL(IS_SRVROLEMEMBER(N'sysadmin'), 0) = 1
+        SET @NhomQuyen = N'PGV';
+    ELSE IF ISNULL(IS_MEMBER(N'KHOA'), 0) = 1
+        SET @NhomQuyen = N'KHOA';
+    ELSE IF ISNULL(IS_MEMBER(N'NHOM_SV'), 0) = 1
+        SET @NhomQuyen = N'SV';
+
+    SELECT @MAGV = G.MAGV
+    FROM dbo.GIANGVIEN AS G
+    WHERE LOWER(RTRIM(G.MAGV)) = LOWER(RTRIM(@LoginName));
+
+    IF @NhomQuyen = N'KHOA'
+        SET @MAKHOA = dbo.FN_MaKhoaCuaLogin(@LoginName);
+
+    SELECT @LoginName AS LoginName,
+           @NhomQuyen AS NhomQuyen,
+           @MAGV AS MAGV,
+           @MAKHOA AS MAKHOA;
 END;
 GO
 
@@ -403,9 +430,9 @@ BEGIN
         THROW 50000, N'Giảng viên đã được phân công lớp tín chỉ, không thể xóa.', 1;
     END;
 
-    IF EXISTS (SELECT 1 FROM dbo.TaiKhoan WHERE MAGV = @MAGV)
+    IF DATABASE_PRINCIPAL_ID(RTRIM(@MAGV)) IS NOT NULL
     BEGIN
-        THROW 50000, N'Giảng viên đang có tài khoản đăng nhập, không thể xóa.', 1;
+        THROW 50000, N'Giảng viên đang có SQL user đăng nhập, không thể xóa.', 1;
     END;
 
     DELETE FROM dbo.GIANGVIEN
@@ -716,46 +743,13 @@ BEGIN
     BEGIN
         IF IS_MEMBER('KHOA') = 1
         BEGIN
-            -- 1. Tra cứu MAKHOA của Login trong bảng TaiKhoan
-            DECLARE @UserKhoa NCHAR(10) = NULL;
-            SELECT @UserKhoa = MAKHOA FROM dbo.TaiKhoan WHERE LOWER(Login) = @UserLogin;
+            DECLARE @UserKhoa NCHAR(10) = dbo.FN_MaKhoaCuaLogin(@UserLogin);
 
-            -- 2. Nếu tìm thấy thông tin khoa của user trong bảng TaiKhoan
-            IF @UserKhoa IS NOT NULL
+            IF @UserKhoa IS NULL OR RTRIM(@UserKhoa) <> RTRIM(@LtcKhoa)
             BEGIN
-                IF RTRIM(@UserKhoa) <> RTRIM(@LtcKhoa)
-                BEGIN
-                    DECLARE @MsgTaiKhoan NVARCHAR(200) = N'Tài khoản ' + SUSER_SNAME() + N' thuộc khoa ' + RTRIM(@UserKhoa) + N' không được phép sửa điểm của khoa ' + RTRIM(@LtcKhoa) + N'.';
-                    THROW 50000, @MsgTaiKhoan, 1;
-                END;
-            END
-            -- 3. Nếu không tìm thấy trong TaiKhoan, kiểm tra theo login hệ thống và mẫu tên login
-            ELSE
-            BEGIN
-                IF @UserLogin = 'khoa_cntt' AND @LtcKhoa <> 'CNTT'
-                BEGIN
-                    THROW 50000, N'Tài khoản khoa CNTT không được phép sửa điểm của khoa khác.', 1;
-                END;
-
-                IF @UserLogin = 'khoa_vt' AND @LtcKhoa <> 'VT'
-                BEGIN
-                    THROW 50000, N'Tài khoản khoa Viễn thông không được phép sửa điểm của khoa khác.', 1;
-                END;
-
-                IF @UserLogin = 'khoa_chung' AND @LtcKhoa IN ('CNTT', 'VT')
-                BEGIN
-                    THROW 50000, N'Tài khoản khoa chung không được phép sửa điểm của các khoa CNTT và VT.', 1;
-                END;
-
-                -- Fallback: kiểm tra xem tên login có chứa mã khoa hay không (ví dụ khoa_kt, gv_cntt)
-                IF @UserLogin NOT IN ('khoa_cntt', 'khoa_vt', 'khoa_chung')
-                BEGIN
-                    IF CHARINDEX(LOWER(RTRIM(@LtcKhoa)), @UserLogin) = 0
-                    BEGIN
-                        DECLARE @MsgFallback NVARCHAR(200) = N'Tài khoản khoa ' + SUSER_SNAME() + N' không được phép sửa điểm của khoa ' + RTRIM(@LtcKhoa) + N'.';
-                        THROW 50000, @MsgFallback, 1;
-                    END;
-                END;
+                DECLARE @MsgKhoa NVARCHAR(200) = N'Tài khoản SQL ' + SUSER_SNAME()
+                    + N' không được phép sửa điểm của khoa ' + RTRIM(@LtcKhoa) + N'.';
+                THROW 50000, @MsgKhoa, 1;
             END;
         END
         ELSE
@@ -917,9 +911,23 @@ BEGIN
     SET NOCOUNT ON;
 
     SELECT G.MAGV, G.HO + N' ' + G.TEN AS HOTEN,
-           T.Login, T.MatKhau, T.NhomQuyen, T.MAKHOA
+           U.name AS Login,
+           CAST(NULL AS NVARCHAR(50)) AS MatKhau,
+           R.NhomQuyen,
+           G.MAKHOA
     FROM dbo.GIANGVIEN AS G
-    LEFT JOIN dbo.TaiKhoan AS T ON G.MAGV = T.MAGV
+    LEFT JOIN sys.database_principals AS U
+        ON U.name = RTRIM(G.MAGV)
+       AND U.type IN ('S', 'U')
+    OUTER APPLY (
+        SELECT TOP 1 RolePrincipal.name AS NhomQuyen
+        FROM sys.database_role_members AS RM
+        JOIN sys.database_principals AS RolePrincipal
+            ON RolePrincipal.principal_id = RM.role_principal_id
+        WHERE RM.member_principal_id = U.principal_id
+          AND RolePrincipal.name IN (N'PGV', N'KHOA')
+        ORDER BY CASE RolePrincipal.name WHEN N'PGV' THEN 1 ELSE 2 END
+    ) AS R
     ORDER BY G.TEN, G.HO;
 END;
 GO
@@ -930,9 +938,17 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT NhomQuyen
-    FROM dbo.TaiKhoan
-    WHERE MAGV = @MAGV;
+    DECLARE @LoginName SYSNAME = RTRIM(@MAGV);
+
+    SELECT TOP 1 RolePrincipal.name AS NhomQuyen
+    FROM sys.database_principals AS U
+    JOIN sys.database_role_members AS RM
+        ON RM.member_principal_id = U.principal_id
+    JOIN sys.database_principals AS RolePrincipal
+        ON RolePrincipal.principal_id = RM.role_principal_id
+    WHERE U.name = @LoginName
+      AND RolePrincipal.name IN (N'PGV', N'KHOA')
+    ORDER BY CASE RolePrincipal.name WHEN N'PGV' THEN 1 ELSE 2 END;
 END;
 GO
 
@@ -951,71 +967,80 @@ BEGIN
         THROW 50000, N'Giảng viên không tồn tại.', 1;
     END;
 
-    -- Kiểm tra phân quyền KHOA đối với giảng viên mục tiêu
-    DECLARE @UserLogin NVARCHAR(128) = LOWER(SUSER_SNAME());
-    DECLARE @UserKhoa NCHAR(10) = NULL;
-    SELECT @UserKhoa = MAKHOA FROM dbo.TaiKhoan WHERE LOWER(Login) = @UserLogin;
-
-    IF IS_MEMBER('PGV') = 0 AND IS_SRVROLEMEMBER('sysadmin') = 0
+    IF ISNULL(IS_MEMBER(N'PGV'), 0) = 0 AND ISNULL(IS_SRVROLEMEMBER(N'sysadmin'), 0) = 0
     BEGIN
-        IF IS_MEMBER('KHOA') = 1
-        BEGIN
-            DECLARE @TargetGvKhoa NCHAR(10);
-            SELECT @TargetGvKhoa = MAKHOA FROM dbo.GIANGVIEN WHERE MAGV = @MAGV;
-
-            IF @TargetGvKhoa IS NOT NULL
-            BEGIN
-                IF @UserKhoa IS NOT NULL
-                BEGIN
-                    IF RTRIM(@UserKhoa) <> RTRIM(@TargetGvKhoa)
-                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
-                END
-                ELSE
-                BEGIN
-                    IF @UserLogin = 'khoa_cntt' AND @TargetGvKhoa <> 'CNTT'
-                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
-
-                    IF @UserLogin = 'khoa_vt' AND @TargetGvKhoa <> 'VT'
-                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
-
-                    IF @UserLogin = 'khoa_chung' AND @TargetGvKhoa IN ('CNTT', 'VT')
-                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
-
-                    IF @UserLogin NOT IN ('khoa_cntt', 'khoa_vt', 'khoa_chung')
-                    BEGIN
-                        IF CHARINDEX(LOWER(RTRIM(@TargetGvKhoa)), @UserLogin) = 0
-                            THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
-                    END;
-                END;
-            END;
-        END;
+        THROW 50003, N'Chỉ PGV được tạo hoặc sửa SQL login giảng viên.', 1;
     END;
 
-    IF EXISTS (SELECT 1 FROM dbo.TaiKhoan WHERE Login = @Login AND MAGV <> @MAGV)
+    DECLARE @LoginName SYSNAME = LTRIM(RTRIM(@Login));
+    DECLARE @MagvLogin SYSNAME = RTRIM(@MAGV);
+
+    IF @LoginName IS NULL OR @LoginName = N''
     BEGIN
-        THROW 50000, N'Tên đăng nhập đã tồn tại cho một giảng viên khác.', 1;
+        THROW 50000, N'Login không được để trống.', 1;
     END;
 
-    IF ISNULL(IS_MEMBER(N'KHOA'), 0) = 1 AND @NhomQuyen = N'PGV'
+    IF @MatKhau IS NULL OR LTRIM(RTRIM(@MatKhau)) = N''
     BEGIN
-        THROW 50001, N'Khoa khong duoc cap tai khoan nhom PGV.', 1;
+        THROW 50000, N'Mật khẩu không được để trống.', 1;
     END;
 
-    IF EXISTS (SELECT 1 FROM dbo.TaiKhoan WHERE MAGV = @MAGV)
+    IF LOWER(@LoginName) <> LOWER(@MagvLogin)
     BEGIN
-        UPDATE dbo.TaiKhoan
-        SET Login = @Login,
-            MatKhau = @MatKhau,
-            NhomQuyen = @NhomQuyen,
-            MAKHOA = @MAKHOA,
-            TrangThai = N'Active'
-        WHERE MAGV = @MAGV;
+        THROW 50000, N'Login giảng viên phải trùng MAGV để lấy khoa từ bảng GIANGVIEN, không dùng bảng ánh xạ phụ.', 1;
+    END;
+
+    IF @NhomQuyen NOT IN (N'PGV', N'KHOA')
+    BEGIN
+        THROW 50000, N'Nhóm quyền SQL không hợp lệ.', 1;
+    END;
+
+    DECLARE @Sql NVARCHAR(MAX);
+    DECLARE @Password NVARCHAR(4000) = REPLACE(@MatKhau, N'''', N'''''');
+
+    IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @LoginName)
+    BEGIN
+        SET @Sql = N'ALTER LOGIN ' + QUOTENAME(@LoginName)
+            + N' WITH PASSWORD = N''' + @Password
+            + N''', DEFAULT_DATABASE = [QLDSV_HTC], CHECK_POLICY = OFF;';
+        EXEC(@Sql);
     END
     ELSE
     BEGIN
-        INSERT INTO dbo.TaiKhoan (Login, MatKhau, NhomQuyen, MAGV, MAKHOA, TrangThai, NgayTao)
-        VALUES (@Login, @MatKhau, @NhomQuyen, @MAGV, @MAKHOA, N'Active', GETDATE());
+        SET @Sql = N'CREATE LOGIN ' + QUOTENAME(@LoginName)
+            + N' WITH PASSWORD = N''' + @Password
+            + N''', DEFAULT_DATABASE = [QLDSV_HTC], CHECK_POLICY = OFF;';
+        EXEC(@Sql);
     END;
+
+    IF DATABASE_PRINCIPAL_ID(@LoginName) IS NULL
+    BEGIN
+        SET @Sql = N'CREATE USER ' + QUOTENAME(@LoginName)
+            + N' FOR LOGIN ' + QUOTENAME(@LoginName) + N';';
+        EXEC(@Sql);
+    END
+    ELSE
+    BEGIN
+        SET @Sql = N'ALTER USER ' + QUOTENAME(@LoginName)
+            + N' WITH LOGIN = ' + QUOTENAME(@LoginName) + N';';
+        EXEC(@Sql);
+    END;
+
+    IF ISNULL(IS_ROLEMEMBER(N'PGV', @LoginName), 0) = 1
+    BEGIN
+        SET @Sql = N'ALTER ROLE [PGV] DROP MEMBER ' + QUOTENAME(@LoginName) + N';';
+        EXEC(@Sql);
+    END;
+
+    IF ISNULL(IS_ROLEMEMBER(N'KHOA', @LoginName), 0) = 1
+    BEGIN
+        SET @Sql = N'ALTER ROLE [KHOA] DROP MEMBER ' + QUOTENAME(@LoginName) + N';';
+        EXEC(@Sql);
+    END;
+
+    SET @Sql = N'ALTER ROLE ' + QUOTENAME(@NhomQuyen)
+        + N' ADD MEMBER ' + QUOTENAME(@LoginName) + N';';
+    EXEC(@Sql);
 END;
 GO
 
@@ -1025,59 +1050,43 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF NOT EXISTS (SELECT 1 FROM dbo.TaiKhoan WHERE MAGV = @MAGV)
+    IF ISNULL(IS_MEMBER(N'PGV'), 0) = 0 AND ISNULL(IS_SRVROLEMEMBER(N'sysadmin'), 0) = 0
     BEGIN
-        THROW 50000, N'Giảng viên này không có tài khoản đăng nhập nào.', 1;
+        THROW 50003, N'Chỉ PGV được xóa SQL login giảng viên.', 1;
     END;
 
-    -- Kiểm tra phân quyền KHOA đối với giảng viên mục tiêu
-    DECLARE @UserLogin NVARCHAR(128) = LOWER(SUSER_SNAME());
-    DECLARE @UserKhoa NCHAR(10) = NULL;
-    SELECT @UserKhoa = MAKHOA FROM dbo.TaiKhoan WHERE LOWER(Login) = @UserLogin;
+    DECLARE @LoginName SYSNAME = RTRIM(@MAGV);
+    DECLARE @Sql NVARCHAR(MAX);
 
-    IF IS_MEMBER('PGV') = 0 AND IS_SRVROLEMEMBER('sysadmin') = 0
+    IF DATABASE_PRINCIPAL_ID(@LoginName) IS NULL
+       AND NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @LoginName)
     BEGIN
-        IF IS_MEMBER('KHOA') = 1
-        BEGIN
-            DECLARE @TargetGvKhoa NCHAR(10);
-            SELECT @TargetGvKhoa = MAKHOA FROM dbo.GIANGVIEN WHERE MAGV = @MAGV;
-
-            IF @TargetGvKhoa IS NOT NULL
-            BEGIN
-                IF @UserKhoa IS NOT NULL
-                BEGIN
-                    IF RTRIM(@UserKhoa) <> RTRIM(@TargetGvKhoa)
-                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
-                END
-                ELSE
-                BEGIN
-                    IF @UserLogin = 'khoa_cntt' AND @TargetGvKhoa <> 'CNTT'
-                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
-
-                    IF @UserLogin = 'khoa_vt' AND @TargetGvKhoa <> 'VT'
-                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
-
-                    IF @UserLogin = 'khoa_chung' AND @TargetGvKhoa IN ('CNTT', 'VT')
-                        THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
-
-                    IF @UserLogin NOT IN ('khoa_cntt', 'khoa_vt', 'khoa_chung')
-                    BEGIN
-                        IF CHARINDEX(LOWER(RTRIM(@TargetGvKhoa)), @UserLogin) = 0
-                            THROW 50003, N'Không được quản lý tài khoản giảng viên thuộc khoa khác.', 1;
-                    END;
-                END;
-            END;
-        END;
+        THROW 50000, N'Giảng viên này không có SQL login/user đăng nhập.', 1;
     END;
 
-    IF ISNULL(IS_MEMBER(N'KHOA'), 0) = 1
-       AND EXISTS (SELECT 1 FROM dbo.TaiKhoan WHERE MAGV = @MAGV AND NhomQuyen = N'PGV')
+    IF ISNULL(IS_ROLEMEMBER(N'PGV', @LoginName), 0) = 1
     BEGIN
-        THROW 50002, N'Khoa khong co quyen xoa tai khoan nhom PGV.', 1;
+        SET @Sql = N'ALTER ROLE [PGV] DROP MEMBER ' + QUOTENAME(@LoginName) + N';';
+        EXEC(@Sql);
     END;
 
-    DELETE FROM dbo.TaiKhoan
-    WHERE MAGV = @MAGV;
+    IF ISNULL(IS_ROLEMEMBER(N'KHOA', @LoginName), 0) = 1
+    BEGIN
+        SET @Sql = N'ALTER ROLE [KHOA] DROP MEMBER ' + QUOTENAME(@LoginName) + N';';
+        EXEC(@Sql);
+    END;
+
+    IF DATABASE_PRINCIPAL_ID(@LoginName) IS NOT NULL
+    BEGIN
+        SET @Sql = N'DROP USER ' + QUOTENAME(@LoginName) + N';';
+        EXEC(@Sql);
+    END;
+
+    IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @LoginName)
+    BEGIN
+        SET @Sql = N'DROP LOGIN ' + QUOTENAME(@LoginName) + N';';
+        EXEC(@Sql);
+    END;
 END;
 GO
 
@@ -1360,9 +1369,23 @@ BEGIN
     SET NOCOUNT ON;
 
     SELECT G.MAGV, G.HO + N' ' + G.TEN AS HOTEN,
-           T.Login, T.MatKhau, T.NhomQuyen, G.MAKHOA
+           U.name AS Login,
+           CAST(NULL AS NVARCHAR(50)) AS MatKhau,
+           R.NhomQuyen,
+           G.MAKHOA
     FROM dbo.GIANGVIEN AS G
-    LEFT JOIN dbo.TaiKhoan AS T ON G.MAGV = T.MAGV
+    LEFT JOIN sys.database_principals AS U
+        ON U.name = RTRIM(G.MAGV)
+       AND U.type IN ('S', 'U')
+    OUTER APPLY (
+        SELECT TOP 1 RolePrincipal.name AS NhomQuyen
+        FROM sys.database_role_members AS RM
+        JOIN sys.database_principals AS RolePrincipal
+            ON RolePrincipal.principal_id = RM.role_principal_id
+        WHERE RM.member_principal_id = U.principal_id
+          AND RolePrincipal.name IN (N'PGV', N'KHOA')
+        ORDER BY CASE RolePrincipal.name WHEN N'PGV' THEN 1 ELSE 2 END
+    ) AS R
     ORDER BY G.TEN, G.HO;
 END;
 GO
