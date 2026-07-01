@@ -967,13 +967,29 @@ BEGIN
         THROW 50000, N'Giảng viên không tồn tại.', 1;
     END;
 
-    IF ISNULL(IS_MEMBER(N'PGV'), 0) = 0 AND ISNULL(IS_SRVROLEMEMBER(N'sysadmin'), 0) = 0
+    IF ISNULL(IS_MEMBER(N'PGV'), 0) = 0 
+       AND ISNULL(IS_MEMBER(N'KHOA'), 0) = 0
+       AND ISNULL(IS_SRVROLEMEMBER(N'sysadmin'), 0) = 0
     BEGIN
-        THROW 50003, N'Chỉ PGV được tạo hoặc sửa SQL login giảng viên.', 1;
+        THROW 50003, N'Chỉ nhóm PGV hoặc KHOA được tạo hoặc sửa tài khoản.', 1;
     END;
 
     DECLARE @LoginName SYSNAME = LTRIM(RTRIM(@Login));
     DECLARE @MagvLogin SYSNAME = RTRIM(@MAGV);
+
+    IF ISNULL(IS_MEMBER(N'PGV'), 0) = 0 AND ISNULL(IS_SRVROLEMEMBER(N'sysadmin'), 0) = 0
+    BEGIN
+        IF @NhomQuyen <> N'KHOA'
+        BEGIN
+            THROW 50003, N'Nhóm KHOA chỉ được tạo hoặc sửa tài khoản thuộc nhóm KHOA.', 1;
+        END;
+
+        IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @LoginName)
+           AND ISNULL(IS_ROLEMEMBER(N'PGV', @LoginName), 0) = 1
+        BEGIN
+            THROW 50003, N'Nhóm KHOA không được sửa tài khoản thuộc nhóm PGV.', 1;
+        END;
+    END;
 
     IF @LoginName IS NULL OR @LoginName = N''
     BEGIN
@@ -1050,12 +1066,23 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF ISNULL(IS_MEMBER(N'PGV'), 0) = 0 AND ISNULL(IS_SRVROLEMEMBER(N'sysadmin'), 0) = 0
+    IF ISNULL(IS_MEMBER(N'PGV'), 0) = 0 
+       AND ISNULL(IS_MEMBER(N'KHOA'), 0) = 0
+       AND ISNULL(IS_SRVROLEMEMBER(N'sysadmin'), 0) = 0
     BEGIN
-        THROW 50003, N'Chỉ PGV được xóa SQL login giảng viên.', 1;
+        THROW 50003, N'Chỉ nhóm PGV hoặc KHOA được xóa tài khoản.', 1;
     END;
 
     DECLARE @LoginName SYSNAME = RTRIM(@MAGV);
+
+    IF ISNULL(IS_MEMBER(N'PGV'), 0) = 0 AND ISNULL(IS_SRVROLEMEMBER(N'sysadmin'), 0) = 0
+    BEGIN
+        IF ISNULL(IS_ROLEMEMBER(N'PGV', @LoginName), 0) = 1
+        BEGIN
+            THROW 50003, N'Nhóm KHOA không được xóa tài khoản thuộc nhóm PGV.', 1;
+        END;
+    END;
+
     DECLARE @Sql NVARCHAR(MAX);
 
     IF DATABASE_PRINCIPAL_ID(@LoginName) IS NULL

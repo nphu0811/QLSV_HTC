@@ -135,22 +135,32 @@
         }
     }
     function onGvChange() {
+        var userRole = "${sessionScope.nhomQuyen}";
         var dp = document.getElementById("selectGv");
         var selected = dp.options[dp.selectedIndex];
         var magv = selected.value;
 
         document.getElementById("inputMaGV").value = magv;
 
+        var isPgvAccount = false;
+
         if(magv !== "") {
             var login = selected.getAttribute("data-login");
             var quyen = selected.getAttribute("data-quyen");
             var makhoa = selected.getAttribute("data-makhoa");
 
+            if (quyen === 'PGV') {
+                isPgvAccount = true;
+            }
+
             if(login && login !== "") {
                 document.getElementById("inputLogin").value = login;
                 document.getElementById("inputMatKhau").value = "";
                 if(quyen) {
-                    document.getElementById("inputQuyen").value = quyen;
+                    var inputQ = document.getElementById("inputQuyen");
+                    if (inputQ.querySelector("option[value='" + quyen + "']")) {
+                        inputQ.value = quyen;
+                    }
                 }
                 if(quyen === 'KHOA' && makhoa) {
                     document.getElementById("inputKhoa").value = makhoa;
@@ -164,6 +174,15 @@
             document.getElementById("inputLogin").value = "";
             document.getElementById("inputMatKhau").value = "";
             document.getElementById("inputQuyen").selectedIndex = 0;
+        }
+
+        if (userRole === 'KHOA' && isPgvAccount) {
+            document.getElementById("btnGhi").disabled = true;
+            document.getElementById("btnXoa").disabled = true;
+            alert("Tài khoản này thuộc nhóm PGV. Nhóm KHOA không có quyền thay đổi!");
+        } else {
+            document.getElementById("btnGhi").disabled = false;
+            document.getElementById("btnXoa").disabled = false;
         }
         onQuyenChange();
     }

@@ -18,6 +18,8 @@ IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'sv')
 GO
 
 GRANT ALTER ANY LOGIN TO [pgv_admin];
+GRANT ALTER ANY LOGIN TO [khoa_cntt];
+GRANT ALTER ANY LOGIN TO [khoa_vt];
 GO
 
 USE QLDSV_HTC;
@@ -88,9 +90,17 @@ GO
 IF ISNULL(IS_ROLEMEMBER(N'db_securityadmin', N'pgv_admin'), 0) = 0
     ALTER ROLE db_securityadmin ADD MEMBER pgv_admin;
 GO
+IF ISNULL(IS_ROLEMEMBER(N'db_securityadmin', N'khoa_cntt'), 0) = 0
+    ALTER ROLE db_securityadmin ADD MEMBER khoa_cntt;
+GO
+IF ISNULL(IS_ROLEMEMBER(N'db_securityadmin', N'khoa_vt'), 0) = 0
+    ALTER ROLE db_securityadmin ADD MEMBER khoa_vt;
+GO
 
 GRANT ALTER ANY USER TO PGV;
 GRANT ALTER ANY ROLE TO PGV;
+GRANT ALTER ANY USER TO KHOA;
+GRANT ALTER ANY ROLE TO KHOA;
 GO
 
 REVOKE SELECT, INSERT, UPDATE, DELETE ON dbo.KHOA FROM NHOM_SV, KHOA;
@@ -160,6 +170,9 @@ BEGIN
     GRANT EXECUTE ON OBJECT::dbo.SP_LayKhoaTheoStudent TO KHOA;
     GRANT EXECUTE ON OBJECT::dbo.SP_LayKhoaTheoLop TO KHOA;
     GRANT EXECUTE ON OBJECT::dbo.SP_DanhSachSinhVienTheoLop TO KHOA;
+    GRANT EXECUTE ON OBJECT::dbo.SP_DanhSachTaiKhoanGiangVienCoKhoa TO KHOA;
+    GRANT EXECUTE ON OBJECT::dbo.SP_LuuTaiKhoanGiangVien TO KHOA;
+    GRANT EXECUTE ON OBJECT::dbo.SP_XoaTaiKhoanTheoGiangVien TO KHOA;
 END;
 GO
 

@@ -45,7 +45,7 @@
                 <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/baocao">
                     <span class="nav-icon"><i class="fas fa-chart-simple" aria-hidden="true"></i></span><span>Báo cáo &amp; in ấn</span></a></li>
 
-                <c:if test="${sessionScope.nhomQuyen == 'PGV'}">
+                <c:if test="${sessionScope.nhomQuyen == 'PGV' || sessionScope.nhomQuyen == 'KHOA'}">
                     <li class="nav-header">Hệ thống</li>
                     <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/taikhoan">
                         <span class="nav-icon"><i class="fas fa-user-shield" aria-hidden="true"></i></span><span>Tài khoản</span></a></li>
